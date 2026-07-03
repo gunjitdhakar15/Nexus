@@ -18,7 +18,7 @@ func main() {
 
     // Create application with options
     err := wails.Run(&options.App{
-        Title:  "game-alt-hub",
+        Title:  "Nexus",
         Width:  1280,
         Height: 720,
         AssetServer: &assetserver.Options{

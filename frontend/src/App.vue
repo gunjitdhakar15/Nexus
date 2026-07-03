@@ -69,6 +69,11 @@ const filteredGames = computed(() => {
   return games.value.filter(g => g.title.toLowerCase().includes(q))
 })
 
+// ========== HELPER FUNCTIONS ==========
+const showAlert = (message: string) => {
+  alert(message)
+}
+
 // ========== GAME CRUD ==========
 const loadGames = async () => {
   loading.value = true
@@ -81,7 +86,7 @@ const loadGames = async () => {
     }
   } catch (err: any) {
     console.error('Error loading games:', err)
-    alert('Error loading games: ' + err.message)
+    showAlert('Error loading games: ' + err.message)
   } finally {
     loading.value = false
   }
@@ -108,7 +113,7 @@ const handleAddGame = async () => {
     await loadGames()
   } catch (err: any) {
     console.error('Error adding game:', err)
-    alert('Error adding game: ' + err.message)
+    showAlert('Error adding game: ' + err.message)
   }
 }
 
@@ -192,7 +197,7 @@ onMounted(() => {
       <!-- ========== HEADER ========== -->
       <header class="app-header">
         <div class="header-left">
-          <h1>🎮 Game Hub</h1>
+          <h1>🚀 Nexus</h1>
           <div class="search-bar">
             <span class="search-icon">🔍</span>
             <input 
@@ -325,7 +330,7 @@ onMounted(() => {
         </div>
 
         <div class="detail-actions">
-          <button class="add-alt-btn" @click="alert('Add Alt coming soon!')">
+          <button class="add-alt-btn" @click="showAlert('Add Alt coming soon!')">
             + Add Alt Account
           </button>
         </div>
