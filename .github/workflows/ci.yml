@@ -1,13 +1,13 @@
 name: CI
 
 # WHEN this workflow runs. Every "event" below is a trigger.
-# 'push'  = someone pushes code to main
-# 'pull_request' = someone opens/updates a PR targeting main
+# 'push'  = someone pushes code to main or develop
+# 'pull_request' = someone opens/updates a PR targeting main or develop
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
   pull_request:
-    branches: [main]
+    branches: [main, develop]
 
 # A workflow has multiple 'jobs'. Jobs run in PARALLEL on separate machines.
 # Use jobs to split independent checks (backend / frontend / build).
