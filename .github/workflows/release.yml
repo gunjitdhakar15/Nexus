@@ -37,10 +37,19 @@ jobs:
         working-directory: frontend
         run: npm ci
 
+      # NSIS is no longer preinstalled on GitHub's Windows runners.
+      # Without it, wails silently skips the installer, so install it first.
+      - name: Install NSIS
+        uses: negrutiu/nsis-install@v2
+
       # -nsis builds BOTH Nexus.exe and a Nexus-amd64-installer.exe setup file.
-      # The Windows runner already has NSIS installed.
       - name: Build app + installer
         run: wails build -platform windows/amd64 -nsis
+
+      # Sanity check: show what was actually produced
+      - name: List build output
+        shell: bash
+        run: ls -la build/bin/
 
       # Turn the tag name (e.g. "v1.0.0") into the release title (strip the 'v')
       - name: Compute release version
@@ -49,6 +58,7 @@ jobs:
         run: echo "tag=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
 
       # Publish to a GitHub Release page. Anyone can download from there.
+      # The glob picks up the installer regardless of its exact name.
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
@@ -56,4 +66,4 @@ jobs:
           draft: false
           files: |
             build/bin/Nexus.exe
-            build/bin/Nexus-amd64-installer.exe
+            build/bin/*installer*.exe
