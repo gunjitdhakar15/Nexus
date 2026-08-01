@@ -1,0 +1,111 @@
+name: CI
+
+# WHEN this workflow runs. Every "event" below is a trigger.
+# 'push'  = someone pushes code to main
+# 'pull_request' = someone opens/updates a PR targeting main
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# A workflow has multiple 'jobs'. Jobs run in PARALLEL on separate machines.
+# Use jobs to split independent checks (backend / frontend / build).
+jobs:
+  # ---------- JOB 1: Check the Go backend ----------
+  backend:
+    runs-on: ubuntu-latest  # fresh Linux machine
+    steps:
+      # Step: download your code onto the fresh machine
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step: install Go
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+
+      # Step: make sure dependencies are consistent
+      - name: Tidy modules
+        run: go mod tidy
+
+      # Step: check your Go code compiles. If it doesn't → ❌ fail
+      - name: Build
+        run: go build ./...
+
+      # Step: 'go vet' is Go's built-in linter. Catches bugs like
+      #      wrong printf args, unreachable code, copy locks, etc.
+      - name: Vet
+        run: go vet ./...
+
+  # ---------- JOB 2: Check the Vue frontend ----------
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend  # all run: steps execute inside /frontend
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      # 'npm ci' = clean install from package-lock.json (exact versions).
+      #            Unlike 'npm install' it never modifies the lock file.
+      - name: Install dependencies
+        run: npm ci
+
+      # Your package.json build = 'vue-tsc --noEmit && vite build'
+      # vue-tsc catches TypeScript errors; vite build catches bundling errors.
+      - name: Type-check and build
+        run: npm run build
+
+  # ---------- JOB 3: Build the actual Windows .exe ----------
+  # Wails needs Windows to build a Windows app, so this runs on windows-latest.
+  build:
+    # 'needs' makes this job WAIT until backend+frontend both pass.
+    # If either failed, we don't waste time compiling an exe.
+    needs: [backend, frontend]
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      # Wails CLI is just a Go program - install it with go install
+      - name: Install Wails CLI
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
+
+      - name: Install frontend deps
+        working-directory: frontend
+        run: npm ci
+
+      # Build the Windows executable.
+      # 'nsis' = also create an installer .exe for distribution.
+      - name: Build application
+        run: wails build -platform windows/amd64 -nsis
+
+      # Save the .exe as a build artifact so you can download it
+      # from the workflow run page (Actions tab → run → Artifacts).
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nexus-windows
+          path: build/bin/Nexus.exe
