@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { GetAllGames, AddGame, GetAltsByGame } from '../wailsjs/go/main/App'
+import { GetAllGames, AddGame, GetAltsByGame, AddAlt, UpdateAlt, DeleteAlt } from '../wailsjs/go/main/App'
+import AddAltModal from '@/components/modals/AddAltModal.vue'
+import AltCard from '@/components/details/AltCard.vue'
 
 interface Game {
   id: string
@@ -34,13 +36,15 @@ const loading = ref(false)
 const showAddGameModal = ref(false)
 const newGameTitle = ref('')
 const searchQuery = ref('')
+const selectedCategory = ref('Popular')
+
+// ========== ALT MODAL ==========
+const showAddAltModal = ref(false)
 
 // ========== NAVIGATION ==========
 const selectedGame = ref<Game | null>(null)
 const gameAlts = ref<AltAccount[]>([])
 const showDetailView = ref(false)
-
-// ========== MENU DRAWER ==========
 const showMenu = ref(false)
 
 // ========== ALT PREVIEW CACHE ==========
@@ -63,16 +67,33 @@ const totalPlaytime = computed(() => {
   return total
 })
 
-const filteredGames = computed(() => {
-  if (!searchQuery.value) return games.value
-  const q = searchQuery.value.toLowerCase()
-  return games.value.filter(g => g.title.toLowerCase().includes(q))
+const mostPlayedGame = computed(() => {
+  if (games.value.length === 0) return null
+  return games.value.reduce((a, b) => a.totalPlaytime > b.totalPlaytime ? a : b)
 })
 
-// ========== HELPER FUNCTIONS ==========
-const showAlert = (message: string) => {
-  alert(message)
-}
+const recentGames = computed(() => {
+  return games.value.slice(0, 3)
+})
+
+const filteredGames = computed(() => {
+  let result = games.value
+  if (searchQuery.value) {
+    const q = searchQuery.value.toLowerCase()
+    result = result.filter(g => g.title.toLowerCase().includes(q))
+  }
+  if (selectedCategory.value === 'Most Played') {
+    result = result.sort((a, b) => b.totalPlaytime - a.totalPlaytime).slice(0, 5)
+  }
+  if (selectedCategory.value === 'Recent') {
+    result = result.slice(0, 4)
+  }
+  // For 'Popular' we just show all sorted by playtime
+  if (selectedCategory.value === 'Popular') {
+    result = result.sort((a, b) => b.totalPlaytime - a.totalPlaytime)
+  }
+  return result
+})
 
 // ========== GAME CRUD ==========
 const loadGames = async () => {
@@ -86,7 +107,7 @@ const loadGames = async () => {
     }
   } catch (err: any) {
     console.error('Error loading games:', err)
-    showAlert('Error loading games: ' + err.message)
+    alert('Error loading games: ' + err.message)
   } finally {
     loading.value = false
   }
@@ -113,7 +134,7 @@ const handleAddGame = async () => {
     await loadGames()
   } catch (err: any) {
     console.error('Error adding game:', err)
-    showAlert('Error adding game: ' + err.message)
+    alert('Error adding game: ' + err.message)
   }
 }
 
@@ -139,30 +160,83 @@ const loadFullAlts = async (gameId: string) => {
   }
 }
 
+// ========== ALT MODAL HANDLERS ==========
+const openAddAltModal = () => {
+  showAddAltModal.value = true
+}
+
+const closeAddAltModal = () => {
+  showAddAltModal.value = false
+}
+
+const handleAltAdded = async (newAlt: any) => {
+  closeAddAltModal()
+  await loadFullAlts(selectedGame.value!.id)
+}
+
+const handleAltUpdated = async (updatedAlt: any) => {
+  const idx = gameAlts.value.findIndex(a => a.id === updatedAlt.id)
+  if (idx !== -1) {
+    gameAlts.value[idx] = updatedAlt
+  }
+  // Also update the preview
+  const previewIdx = altPreviews.value[selectedGame.value!.id]?.findIndex(a => a.id === updatedAlt.id)
+  if (previewIdx !== undefined && previewIdx >= 0) {
+    altPreviews.value[selectedGame.value!.id][previewIdx] = updatedAlt
+  }
+}
+
+const handleAltDeleted = async (altId: string) => {
+  gameAlts.value = gameAlts.value.filter(a => a.id !== altId)
+  altPreviews.value[selectedGame.value!.id] = altPreviews.value[selectedGame.value!.id]?.filter(a => a.id !== altId) || []
+}
+
 // ========== GAME IMAGES ==========
 const getGameImage = (title: string): string => {
   const images: Record<string, string> = {
-    'Valorant': 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1200&h=800&fit=crop',
-    'Elden Ring': 'https://images.unsplash.com/photo-1621259182978-fbf93132d53d?w=1200&h=800&fit=crop',
-    'World of Warcraft': 'https://images.unsplash.com/photo-1552820728-8b83bb6b773f?w=1200&h=800&fit=crop',
-    'Destiny 2': 'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=1200&h=800&fit=crop',
-    'Counter-Strike': 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1200&h=800&fit=crop',
-    'League of Legends': 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1200&h=800&fit=crop',
+    'Valorant': 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=600&h=400&fit=crop',
+    'Elden Ring': 'https://images.unsplash.com/photo-1621259182978-fbf93132d53d?w=600&h=400&fit=crop',
+    'World of Warcraft': 'https://images.unsplash.com/photo-1552820728-8b83bb6b773f?w=600&h=400&fit=crop',
+    'Destiny 2': 'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=600&h=400&fit=crop',
+    'Counter-Strike': 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=600&h=400&fit=crop',
+    'League of Legends': 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=600&h=400&fit=crop',
+    'Subway Surf': 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=600&h=400&fit=crop',
+    'Red Dead Redemption': 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=600&h=400&fit=crop',
+    'Uncharted': 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=600&h=400&fit=crop',
+    'FIFA': 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=600&h=400&fit=crop',
+    'Dishonored': 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=600&h=400&fit=crop',
   }
-  return images[title] || 'https://images.unsplash.com/photo-1612287230202-1ff1d85d1bdf?w=1200&h=800&fit=crop'
+  return images[title] || 'https://images.unsplash.com/photo-1612287230202-1ff1d85d1bdf?w=600&h=400&fit=crop'
 }
 
-const getGameEmoji = (title: string): string => {
-  const emojis: Record<string, string> = {
-    'Elden Ring': '⚔️',
-    'Valorant': '🔫',
-    'World of Warcraft': '🧙',
-    'Destiny 2': '🚀',
-    'Counter-Strike': '🎯',
-    'League of Legends': '👑',
+const getGameBackground = (title: string): string => {
+  const backgrounds: Record<string, string> = {
+    'Valorant': 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1920&h=1080&fit=crop',
+    'Elden Ring': 'https://images.unsplash.com/photo-1621259182978-fbf93132d53d?w=1920&h=1080&fit=crop',
   }
-  return emojis[title] || '🎮'
+  return backgrounds[title] || 'https://images.unsplash.com/photo-1612287230202-1ff1d85d1bdf?w=1920&h=1080&fit=crop'
 }
+
+// Font Awesome icon mapping for games
+const getGameIcon = (title: string): string => {
+  const icons: Record<string, string> = {
+    'Valorant': 'fa-crosshairs',
+    'Elden Ring': 'fa-sword',
+    'World of Warcraft': 'fa-dragon',
+    'Destiny 2': 'fa-rocket',
+    'Counter-Strike': 'fa-gun',
+    'League of Legends': 'fa-crown',
+    'Subway Surf': 'fa-train',
+    'Red Dead Redemption': 'fa-horse-head',
+    'Uncharted': 'fa-map',
+    'FIFA': 'fa-futbol',
+    'Dishonored': 'fa-mask',
+  }
+  return icons[title] || 'fa-gamepad'
+}
+
+// ========== HELPERS ==========
+const showAlert = (msg: string) => alert(msg)
 
 // ========== LIFECYCLE ==========
 onMounted(() => {
@@ -180,93 +254,127 @@ onMounted(() => {
 
 <template>
   <div class="app-container" :class="{ dark: isDarkMode, light: !isDarkMode }">
-    <!-- ========== BACKGROUND ========== -->
+    <!-- ========== FULL SCREEN BACKGROUND ========== -->
     <div 
       class="app-background" 
       :style="{
-        backgroundImage: selectedGame 
-          ? `url(${getGameImage(selectedGame.title)})` 
-          : `url(https://images.unsplash.com/photo-1612287230202-1ff1d85d1bdf?w=1920&h=1080&fit=crop)`
+        backgroundImage: `url(${getGameBackground(selectedGame?.title || 'Valorant')})`
       }"
     >
       <div class="app-background-overlay"></div>
     </div>
 
-    <!-- ========== MAIN CONTENT ========== -->
-    <div class="app-content">
-      <!-- ========== HEADER ========== -->
-      <header class="app-header">
-        <div class="header-left">
-          <h1>🚀 Nexus</h1>
-          <div class="search-bar">
-            <span class="search-icon">🔍</span>
-            <input 
-              v-model="searchQuery" 
-              placeholder="Search games..."
-              class="search-input"
-            />
-          </div>
+    <!-- ========== MAIN LAYOUT ========== -->
+    <div class="app-layout">
+      <!-- ========== LEFT SIDEBAR ========== -->
+      <aside class="sidebar">
+        <div class="sidebar-brand">
+          <span class="brand-icon"><i class="fas fa-rocket"></i></span>
         </div>
-        <div class="header-right">
-          <button class="theme-toggle" @click="toggleTheme">
-            {{ isDarkMode ? '🌙' : '☀️' }}
-          </button>
-          <div class="profile-icon" @click="showMenu = !showMenu">
-            <span class="avatar">👤</span>
-            <div class="profile-info">
-              <span class="avatar-text">Gunjit</span>
-              <span class="profile-sub">Gamer</span>
-            </div>
+        
+        <nav class="sidebar-nav">
+          <div 
+            class="nav-item" 
+            :class="{ active: selectedCategory === 'Popular' }"
+            @click="selectedCategory = 'Popular'"
+            title="Popular"
+          >
+            <i class="fas fa-fire nav-icon"></i>
           </div>
-          <button class="menu-btn" @click="showMenu = !showMenu">☰</button>
-        </div>
-      </header>
+          <div 
+            class="nav-item" 
+            :class="{ active: selectedCategory === 'New Games' }"
+            @click="selectedCategory = 'New Games'"
+            title="New Games"
+          >
+            <i class="fas fa-star nav-icon"></i>
+          </div>
+          <div 
+            class="nav-item" 
+            :class="{ active: selectedCategory === 'Most Played' }"
+            @click="selectedCategory = 'Most Played'"
+            title="Most Played"
+          >
+            <i class="fas fa-trophy nav-icon"></i>
+          </div>
+          <div 
+            class="nav-item" 
+            :class="{ active: selectedCategory === 'Recent' }"
+            @click="selectedCategory = 'Recent'"
+            title="Recent"
+          >
+            <i class="fas fa-clock nav-icon"></i>
+          </div>
+          <div class="nav-item" @click="showAddGameModal = true" title="Add Game">
+            <i class="fas fa-plus nav-icon"></i>
+          </div>
+        </nav>
 
-      <!-- ========== HOME VIEW ========== -->
-      <div v-if="!showDetailView" class="home-view">
-        <!-- ========== STATS ROW ========== -->
-        <div class="stats-row">
-          <div class="stat-card">
-            <span class="stat-icon">🎮</span>
-            <div class="stat-info">
-              <span class="stat-value">{{ games.length }}</span>
-              <span class="stat-label">Games</span>
+        <div class="sidebar-footer">
+          <div class="sidebar-stat" title="Games">
+            <span class="stat-number">{{ games.length }}</span>
+            <i class="fas fa-gamepad stat-icon"></i>
+          </div>
+          <div class="sidebar-stat" title="Alts">
+            <span class="stat-number">{{ totalAlts }}</span>
+            <i class="fas fa-users stat-icon"></i>
+          </div>
+          <div class="sidebar-stat" title="Playtime">
+            <span class="stat-number">{{ totalPlaytime }}h</span>
+            <i class="fas fa-hourglass-half stat-icon"></i>
+          </div>
+        </div>
+      </aside>
+
+      <!-- ========== MAIN CONTENT ========== -->
+      <main class="main-content">
+        <!-- HEADER -->
+        <header class="main-header">
+          <div class="header-left">
+            <div class="greeting">
+              <span class="greeting-text">Good evening,</span>
+              <span class="greeting-name">Gunjit</span>
+            </div>
+            <div class="search-bar">
+              <i class="fas fa-search search-icon"></i>
+              <input 
+                v-model="searchQuery" 
+                placeholder="Search games..."
+                class="search-input"
+              />
             </div>
           </div>
-          <div class="stat-card">
-            <span class="stat-icon">⚔️</span>
-            <div class="stat-info">
-              <span class="stat-value">{{ totalAlts }}</span>
-              <span class="stat-label">Alts</span>
+          <div class="header-right">
+            <button class="theme-toggle" @click="toggleTheme" :title="isDarkMode ? 'Switch to Light' : 'Switch to Dark'">
+              <i :class="isDarkMode ? 'fas fa-moon' : 'fas fa-sun'"></i>
+            </button>
+            <div class="profile-icon" @click="showMenu = !showMenu" title="Profile">
+              <i class="fas fa-user-circle avatar"></i>
             </div>
           </div>
-          <div class="stat-card">
-            <span class="stat-icon">⏱️</span>
-            <div class="stat-info">
-              <span class="stat-value">{{ totalPlaytime }}h</span>
-              <span class="stat-label">Playtime</span>
-            </div>
-          </div>
-          <div class="stat-card stat-add" @click="showAddGameModal = true">
-            <span class="stat-icon">➕</span>
-            <div class="stat-info">
-              <span class="stat-value">Add</span>
-              <span class="stat-label">New Game</span>
-            </div>
-          </div>
+        </header>
+
+        <!-- ========== CATEGORY TABS ========== -->
+        <div class="category-tabs">
+          <span 
+            v-for="cat in ['Popular', 'New Games', 'Most Played', 'Recent']" 
+            :key="cat"
+            class="category-tab"
+            :class="{ active: selectedCategory === cat }"
+            @click="selectedCategory = cat"
+          >
+            {{ cat }}
+          </span>
+          <span class="category-tab see-more" @click="showAddGameModal = true">
+            + Add Game
+          </span>
         </div>
 
         <!-- ========== GAME GRID ========== -->
-        <div v-if="loading" class="loading">Loading...</div>
+        <div v-if="loading" class="loading"><i class="fas fa-spinner fa-spin"></i> Loading...</div>
         
         <div v-else>
-          <div class="section-header">
-            <h2>📚 My Games</h2>
-            <span class="section-count">{{ filteredGames.length }} games</span>
-          </div>
-
-          <div class="uniform-grid">
-            <!-- Game Cards -->
+          <div class="game-grid">
             <div 
               v-for="game in filteredGames" 
               :key="game.id" 
@@ -275,117 +383,151 @@ onMounted(() => {
               @click="selectGame(game)"
             >
               <div class="game-card-glass">
-                <div class="game-card-header">
-                  <span class="game-icon-large">{{ getGameEmoji(game.title) }}</span>
-                  <div class="game-info">
-                    <h3>{{ game.title }}</h3>
-                    <span class="game-playtime">⏱️ {{ game.totalPlaytime }}h total</span>
+                <div class="game-card-content">
+                  <div class="game-card-top">
+                    <div class="game-card-header">
+                      <i :class="['fas', getGameIcon(game.title), 'game-icon']"></i>
+                      <span class="game-status">
+                        <i class="fas fa-circle" style="color:#4ade80;font-size:8px;margin-right:4px;"></i>
+                        Play
+                      </span>
+                    </div>
+                    <h3 class="game-title">{{ game.title }}</h3>
+                    <div class="game-meta">
+                      <span><i class="fas fa-clock"></i> {{ game.totalPlaytime }}h</span>
+                      <span><i class="fas fa-user-friends"></i> {{ altPreviews[game.id]?.length || 0 }} alts</span>
+                    </div>
                   </div>
-                </div>
-                
-                <div class="alt-preview">
-                  <div 
-                    v-for="alt in altPreviews[game.id] || []" 
-                    :key="alt.id" 
-                    class="alt-preview-item"
-                  >
-                    <span class="alt-preview-icon">⚔️</span>
-                    <span class="alt-preview-name">{{ alt.name }}</span>
-                    <span class="alt-preview-level">⭐ Lv.{{ alt.level }}</span>
+                  <div class="game-card-bottom">
+                    <span class="game-edition">Standard Edition</span>
+                    <span class="game-reviews"><i class="fas fa-star" style="color:#fbbf24;"></i> +{{ Math.floor(Math.random() * 50) + 10 }} Reviews</span>
                   </div>
-                  <div v-if="!altPreviews[game.id] || altPreviews[game.id].length === 0" class="alt-preview-empty">
-                    No alts yet
-                  </div>
-                  <span v-if="(altPreviews[game.id]?.length || 0) > 0" class="alt-preview-more">
-                    + more
-                  </span>
-                </div>
-                
-                <div class="game-card-footer">
-                  <span class="view-all">Click to manage →</span>
                 </div>
               </div>
             </div>
 
-            <!-- Add New Game Card -->
-            <div class="add-game-card" @click="showAddGameModal = true">
-              <div class="add-game-glass">
-                <div class="add-game-content">
-                  <span class="add-game-icon">➕</span>
-                  <h4>Add New Game</h4>
-                  <p class="add-game-sub">Click to add</p>
+            <!-- Add Game Card -->
+            <div class="game-card add-game-card" @click="showAddGameModal = true">
+              <div class="game-card-glass add-game-glass">
+                <div class="game-card-content add-game-content">
+                  <i class="fas fa-plus-circle add-icon"></i>
+                  <h3 class="add-title">Add New Game</h3>
+                  <p class="add-sub">Click to add</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- See More Link -->
+          <div class="see-more-section">
+            <span class="see-more-link" @click="selectedCategory = 'Most Played'">
+              See More <i class="fas fa-arrow-right"></i>
+            </span>
+          </div>
+        </div>
+      </main>
+
+      <!-- ========== RIGHT PANEL ========== -->
+      <aside class="right-panel" v-if="!showDetailView">
+        <div class="panel-section">
+          <h3 class="panel-title"><i class="fas fa-chart-simple"></i> Your Statistics</h3>
+          <div class="total-hours">
+            <span class="total-hours-value">{{ totalPlaytime }}h</span>
+            <span class="total-hours-label">Total Hours</span>
+          </div>
+          <div class="stats-grid">
+            <div class="panel-stat">
+              <span class="panel-stat-value">{{ games.length }}</span>
+              <span class="panel-stat-label">Games</span>
+            </div>
+            <div class="panel-stat">
+              <span class="panel-stat-value">{{ totalAlts }}</span>
+              <span class="panel-stat-label">Alts</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel-section" v-if="recentGames.length > 0">
+          <h3 class="panel-title"><i class="fas fa-clock-rotate-left"></i> Last Downloads</h3>
+          <div class="panel-game-card" v-for="game in recentGames" :key="game.id">
+            <div class="panel-game-info">
+              <i :class="['fas', getGameIcon(game.title), 'panel-game-icon']"></i>
+              <div>
+                <div class="panel-game-name">{{ game.title }}</div>
+                <div class="panel-game-hours">{{ game.totalPlaytime }}h total</div>
+                <div class="panel-download-progress">
+                  <div class="progress-bar" :style="{ width: Math.min((game.totalPlaytime / 100) * 100, 100) + '%' }"></div>
+                  <span class="progress-text">{{ Math.min(Math.round((game.totalPlaytime / 100) * 100), 100) }}%</span>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- ========== DETAIL VIEW ========== -->
-      <div v-else class="detail-view">
-        <div class="detail-header">
-          <button class="back-btn" @click="goBack">← Back</button>
-          <h2>{{ selectedGame?.title }}</h2>
-          <span class="alt-count-detail">{{ gameAlts.length }} Alts</span>
-        </div>
-
-        <div class="detail-actions">
-          <button class="add-alt-btn" @click="showAlert('Add Alt coming soon!')">
-            + Add Alt Account
-          </button>
-        </div>
-
-        <div v-if="gameAlts.length === 0" class="empty-state">
-          <p>👤 No alts yet for {{ selectedGame?.title }}</p>
-          <p class="empty-sub">Add your first alt above!</p>
-        </div>
-
-        <div v-else class="uniform-grid">
-          <div 
-            v-for="alt in gameAlts" 
-            :key="alt.id" 
-            class="alt-card"
-            :style="{ backgroundImage: `url(${getGameImage(selectedGame?.title || '')})` }"
-          >
-            <div class="alt-card-glass">
-              <div class="alt-card-header">
-                <span class="alt-icon">⚔️</span>
-                <span class="alt-name">{{ alt.name }}</span>
-                <span class="alt-level-badge">⭐ Lv.{{ alt.level }}</span>
+        <div class="panel-section" v-if="mostPlayedGame">
+          <h3 class="panel-title"><i class="fas fa-trophy"></i> Most Played</h3>
+          <div class="panel-game-card highlight">
+            <div class="panel-game-info">
+              <i :class="['fas', getGameIcon(mostPlayedGame.title), 'panel-game-icon']"></i>
+              <div>
+                <div class="panel-game-name">{{ mostPlayedGame.title }}</div>
+                <div class="panel-game-hours">{{ mostPlayedGame.totalPlaytime }} hours</div>
               </div>
-              <div class="alt-card-stats">
-                <div class="alt-stat">
-                  <span class="stat-label">Playtime</span>
-                  <span class="stat-value">{{ alt.playtimeHours }}h</span>
-                </div>
-                <div class="alt-stat">
-                  <span class="stat-label">Last Played</span>
-                  <span class="stat-value">{{ alt.lastPlayed?.slice(0,10) || 'Never' }}</span>
-                </div>
-              </div>
-              <div class="alt-progress" v-if="alt.progress && Object.keys(alt.progress).length > 0">
-                <span class="progress-label">📌 Progress:</span>
-                <span v-for="(value, key) in alt.progress" :key="key" class="progress-tag">
-                  {{ key }}: {{ value }}
-                </span>
-              </div>
-              <div v-else class="alt-no-progress">No progress tracked</div>
             </div>
           </div>
         </div>
+      </aside>
+
+      <!-- ========== DETAIL OVERLAY ========== -->
+      <div v-if="showDetailView" class="detail-overlay">
+        <div class="detail-panel">
+          <button class="detail-close" @click="goBack"><i class="fas fa-times"></i></button>
+          <h2 class="detail-title">{{ selectedGame?.title }}</h2>
+          <span class="detail-count">{{ gameAlts.length }} Alts</span>
+
+          <div class="detail-actions">
+            <button class="add-alt-btn" @click="openAddAltModal">
+              <i class="fas fa-user-plus"></i> Add Alt Account
+            </button>
+          </div>
+
+          <div v-if="gameAlts.length === 0" class="empty-state">
+            <p><i class="fas fa-user-slash"></i> No alts yet for {{ selectedGame?.title }}</p>
+            <p class="empty-sub">Add your first alt above!</p>
+          </div>
+
+          <div v-else class="alt-grid">
+            <AltCard 
+              v-for="alt in gameAlts" 
+              :key="alt.id" 
+              :alt="alt"
+              @update="handleAltUpdated"
+              @delete="handleAltDeleted"
+            />
+          </div>
+        </div>
       </div>
+
+      <!-- ========== ADD ALT MODAL ========== -->
+      <AddAltModal
+        :game-id="selectedGame?.id || ''"
+        :game-title="selectedGame?.title || ''"
+        :is-open="showAddAltModal"
+        @close="closeAddAltModal"
+        @added="handleAltAdded"
+      />
     </div>
 
     <!-- ========== MENU DRAWER ========== -->
     <div v-if="showMenu" class="menu-overlay" @click="showMenu = false">
       <div class="menu-drawer" @click.stop>
         <div class="menu-header">
-          <span class="menu-avatar">👤</span>
+          <i class="fas fa-user-circle menu-avatar"></i>
           <div>
             <h4>Gunjit</h4>
             <span class="menu-email">gunjit@email.com</span>
           </div>
-          <button class="menu-close" @click="showMenu = false">✕</button>
+          <button class="menu-close" @click="showMenu = false"><i class="fas fa-times"></i></button>
         </div>
         <div class="menu-stats">
           <div class="menu-stat">
@@ -403,11 +545,12 @@ onMounted(() => {
         </div>
         <div class="menu-items">
           <div class="menu-item" @click="toggleTheme">
-            {{ isDarkMode ? '☀️ Light Mode' : '🌙 Dark Mode' }}
+            <i :class="isDarkMode ? 'fas fa-sun' : 'fas fa-moon'"></i>
+            {{ isDarkMode ? 'Light Mode' : 'Dark Mode' }}
           </div>
-          <div class="menu-item">⚙️ Settings</div>
-          <div class="menu-item">💾 Backup Database</div>
-          <div class="menu-item menu-item-danger">🚪 Logout</div>
+          <div class="menu-item"><i class="fas fa-cog"></i> Settings</div>
+          <div class="menu-item"><i class="fas fa-database"></i> Backup</div>
+          <div class="menu-item menu-item-danger"><i class="fas fa-sign-out-alt"></i> Logout</div>
         </div>
       </div>
     </div>
@@ -416,12 +559,12 @@ onMounted(() => {
     <div v-if="showAddGameModal" class="modal-overlay" @click="showAddGameModal = false">
       <div class="modal-content" @click.stop>
         <div class="modal-header">
-          <h3>➕ Add New Game</h3>
-          <button class="modal-close" @click="showAddGameModal = false">✕</button>
+          <h3><i class="fas fa-plus-circle"></i> Add New Game</h3>
+          <button class="modal-close" @click="showAddGameModal = false"><i class="fas fa-times"></i></button>
         </div>
         <div class="modal-body">
           <div class="form-group">
-            <label>Game Name</label>
+            <label><i class="fas fa-gamepad"></i> Game Name</label>
             <input 
               v-model="newGameTitle" 
               placeholder="e.g., Elden Ring, Valorant, WoW"
@@ -430,16 +573,18 @@ onMounted(() => {
             />
           </div>
           <div class="form-group">
-            <label>Cover Art (optional)</label>
+            <label><i class="fas fa-image"></i> Cover Art (optional)</label>
             <div class="file-upload">
-              <button class="file-upload-btn">Choose File</button>
+              <button class="file-upload-btn"><i class="fas fa-folder-open"></i> Choose File</button>
               <span class="file-upload-text">No file chosen</span>
             </div>
           </div>
         </div>
         <div class="modal-footer">
           <button class="modal-cancel" @click="showAddGameModal = false">Cancel</button>
-          <button class="modal-confirm" @click="handleAddGame">Add Game</button>
+          <button class="modal-confirm" @click="handleAddGame">
+            <i class="fas fa-plus"></i> Add Game
+          </button>
         </div>
       </div>
     </div>
@@ -456,6 +601,8 @@ onMounted(() => {
   --bg-glass: rgba(0, 0, 0, 0.35);
   --bg-menu: rgba(17, 27, 38, 0.95);
   --bg-modal: rgba(17, 27, 38, 0.95);
+  --bg-sidebar: rgba(10, 14, 23, 0.85);
+  --bg-panel: rgba(10, 14, 23, 0.7);
   
   --text-primary: #ffffff;
   --text-secondary: #c8d0d8;
@@ -464,19 +611,14 @@ onMounted(() => {
   
   --border-color: rgba(255, 255, 255, 0.06);
   --border-light: rgba(255, 255, 255, 0.08);
-  --border-dashed: rgba(255, 255, 255, 0.08);
   
   --shadow-color: rgba(108, 140, 255, 0.15);
-  --progress-bg: rgba(0, 0, 0, 0.4);
-  --tag-border: rgba(108, 140, 255, 0.15);
   
   --gradient-start: #6c8cff;
   --gradient-end: #a855f7;
   
-  position: relative;
   min-height: 100vh;
   font-family: 'Segoe UI', -apple-system, sans-serif;
-  transition: background 0.3s ease, color 0.3s ease;
 }
 
 /* ========== LIGHT THEME ========== */
@@ -488,6 +630,8 @@ onMounted(() => {
   --bg-glass: rgba(255, 255, 255, 0.5);
   --bg-menu: rgba(255, 255, 255, 0.95);
   --bg-modal: rgba(255, 255, 255, 0.95);
+  --bg-sidebar: rgba(255, 255, 255, 0.85);
+  --bg-panel: rgba(255, 255, 255, 0.7);
   
   --text-primary: #1a1a2e;
   --text-secondary: #2d2d44;
@@ -496,9 +640,6 @@ onMounted(() => {
   
   --border-color: rgba(0, 0, 0, 0.06);
   --border-light: rgba(0, 0, 0, 0.08);
-  --border-dashed: rgba(0, 0, 0, 0.08);
-  
-  --progress-bg: rgba(255, 255, 255, 0.5);
 }
 
 /* ========== BACKGROUND ========== */
@@ -511,7 +652,7 @@ onMounted(() => {
   background-size: cover;
   background-position: center;
   z-index: 0;
-  transition: background-image 0.5s ease;
+  transition: background-image 0.8s ease;
 }
 
 .app-background-overlay {
@@ -528,21 +669,120 @@ onMounted(() => {
   background: rgba(240, 242, 245, 0.8);
 }
 
-.app-content {
+/* ========== LAYOUT ========== */
+.app-layout {
   position: relative;
   z-index: 1;
-  padding: 24px 32px;
+  display: flex;
   min-height: 100vh;
+  gap: 0;
+}
+
+/* ========== LEFT SIDEBAR (Icon Only) ========== */
+.sidebar {
+  width: 64px;
+  background: var(--bg-sidebar);
+  backdrop-filter: blur(20px);
+  border-right: 1px solid var(--border-color);
+  padding: 20px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.sidebar-brand {
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 20px;
+  width: 100%;
+  text-align: center;
+}
+
+.brand-icon {
+  font-size: 28px;
+  color: var(--gradient-start);
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  width: 100%;
+  align-items: center;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: var(--text-muted);
+}
+
+.nav-item:hover {
+  background: var(--bg-glass);
+  color: var(--text-primary);
+}
+
+.nav-item.active {
+  background: var(--bg-glass);
+  color: var(--text-primary);
+  border: 1px solid var(--border-light);
+}
+
+.nav-icon {
+  font-size: 20px;
+}
+
+.sidebar-footer {
+  border-top: 1px solid var(--border-color);
+  padding-top: 16px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.sidebar-stat {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.stat-number {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.stat-icon {
+  font-size: 14px;
+  color: var(--text-dim);
+}
+
+/* ========== MAIN CONTENT ========== */
+.main-content {
+  flex: 1;
+  padding: 24px 32px;
+  overflow-y: auto;
+  max-height: 100vh;
 }
 
 /* ========== HEADER ========== */
-.app-header {
+.main-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-bottom: 16px;
-  margin-bottom: 24px;
-  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 20px;
 }
 
 .header-left {
@@ -552,25 +792,32 @@ onMounted(() => {
   flex: 1;
 }
 
-.header-left h1 {
-  font-size: 26px;
+.greeting {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.greeting-text {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.greeting-name {
+  font-size: 20px;
   font-weight: 700;
-  background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  margin: 0;
-  white-space: nowrap;
+  color: var(--text-primary);
 }
 
 .search-bar {
   display: flex;
   align-items: center;
   background: var(--bg-glass);
-  border-radius: 12px;
+  border-radius: 10px;
   padding: 6px 14px;
   border: 1px solid var(--border-light);
   flex: 1;
-  max-width: 400px;
+  max-width: 300px;
   transition: border-color 0.2s;
 }
 
@@ -580,7 +827,7 @@ onMounted(() => {
 
 .search-icon {
   color: var(--text-dim);
-  font-size: 16px;
+  font-size: 14px;
   margin-right: 8px;
 }
 
@@ -588,8 +835,8 @@ onMounted(() => {
   background: transparent;
   border: none;
   color: var(--text-primary);
-  font-size: 14px;
-  padding: 8px 0;
+  font-size: 13px;
+  padding: 6px 0;
   width: 100%;
   outline: none;
 }
@@ -608,186 +855,113 @@ onMounted(() => {
   background: var(--bg-glass);
   border: 1px solid var(--border-light);
   border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  font-size: 18px;
+  width: 36px;
+  height: 36px;
+  font-size: 16px;
   cursor: pointer;
   transition: all 0.2s;
   display: flex;
   align-items: center;
   justify-content: center;
+  color: var(--text-secondary);
 }
 
 .theme-toggle:hover {
   border-color: var(--gradient-start);
-  transform: scale(1.05);
 }
 
 .profile-icon {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  cursor: pointer;
-  padding: 6px 16px 6px 8px;
-  border-radius: 30px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
   background: var(--bg-glass);
   border: 1px solid var(--border-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
   transition: all 0.2s;
+  font-size: 24px;
+  color: var(--text-secondary);
 }
 
 .profile-icon:hover {
   border-color: var(--gradient-start);
 }
 
-.avatar {
-  font-size: 28px;
-}
-
-.profile-info {
+/* ========== CATEGORY TABS ========== */
+.category-tabs {
   display: flex;
-  flex-direction: column;
-  line-height: 1.2;
+  gap: 8px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
 }
 
-.avatar-text {
-  font-size: 14px;
-  color: var(--text-primary);
-  font-weight: 600;
-}
-
-.profile-sub {
-  font-size: 11px;
-  color: var(--text-dim);
-}
-
-.menu-btn {
+.category-tab {
+  padding: 6px 16px;
+  border-radius: 20px;
   background: var(--bg-glass);
   border: 1px solid var(--border-light);
-  color: var(--text-secondary);
-  font-size: 20px;
-  padding: 6px 12px;
-  border-radius: 8px;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
 }
 
-.menu-btn:hover {
-  background: var(--bg-secondary);
-}
-
-/* ========== STATS ROW ========== */
-.stats-row {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-  margin-bottom: 32px;
-}
-
-.stat-card {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  background: var(--bg-glass);
-  backdrop-filter: blur(10px);
-  border: 1px solid var(--border-light);
-  border-radius: 14px;
-  padding: 16px 20px;
-  transition: all 0.2s;
-}
-
-.stat-card:hover {
+.category-tab:hover {
   border-color: var(--gradient-start);
-  transform: translateY(-2px);
+  color: var(--text-primary);
 }
 
-.stat-card.stat-add {
-  cursor: pointer;
+.category-tab.active {
+  background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+  border-color: transparent;
+  color: #fff;
+}
+
+.category-tab.see-more {
   border-style: dashed;
 }
 
-.stat-card.stat-add:hover {
+.category-tab.see-more:hover {
   border-color: var(--gradient-start);
   background: rgba(108, 140, 255, 0.05);
 }
 
-.stat-icon {
-  font-size: 28px;
-}
-
-.stat-info {
-  display: flex;
-  flex-direction: column;
-}
-
-.stat-value {
-  font-size: 22px;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-.stat-label {
-  font-size: 12px;
-  color: var(--text-dim);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-/* ========== SECTION HEADER ========== */
-.section-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 20px;
-}
-
-.section-header h2 {
-  margin: 0;
-  color: var(--text-primary);
-  font-size: 20px;
-}
-
-.section-count {
-  font-size: 13px;
-  color: var(--text-dim);
-  background: var(--bg-glass);
-  padding: 2px 12px;
-  border-radius: 12px;
-}
-
-/* ========== UNIFORM GRID ========== */
-.uniform-grid {
+/* ========== GAME GRID ========== */
+.game-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 18px;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 16px;
 }
 
 /* ========== GAME CARD ========== */
 .game-card {
-  border-radius: 16px;
+  border-radius: 14px;
   overflow: hidden;
   background-size: cover;
   background-position: center;
   cursor: pointer;
   transition: all 0.3s ease;
-  position: relative;
-  min-height: 280px;
+  min-height: 220px;
 }
 
 .game-card:hover {
-  transform: translateY(-6px) scale(1.01);
-  box-shadow: 0 20px 60px var(--shadow-color);
+  transform: translateY(-6px) scale(1.02);
+  box-shadow: 0 20px 50px var(--shadow-color);
 }
 
 .game-card-glass {
   background: var(--bg-card);
   backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  padding: 18px 16px 16px;
+  padding: 16px;
   border: 1px solid var(--border-light);
-  border-radius: 16px;
-  min-height: 280px;
+  border-radius: 14px;
+  min-height: 220px;
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
   transition: background 0.3s ease;
 }
 
@@ -795,327 +969,332 @@ onMounted(() => {
   background: var(--bg-card-hover);
 }
 
+.game-card-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  justify-content: space-between;
+}
+
+.game-card-top {
+  flex: 1;
+}
+
 .game-card-header {
   display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 14px;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 8px;
 }
 
-.game-icon-large {
-  font-size: 28px;
-  flex-shrink: 0;
+.game-icon {
+  font-size: 24px;
+  color: var(--gradient-start);
 }
 
-.game-info {
-  flex: 1;
-  min-width: 0;
+.game-status {
+  font-size: 11px;
+  color: #4ade80;
+  background: rgba(74, 222, 128, 0.15);
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-weight: 500;
 }
 
-.game-info h3 {
-  margin: 0;
-  font-size: 16px;
+.game-title {
+  margin: 4px 0 4px 0;
+  font-size: 15px;
+  font-weight: 600;
   color: var(--text-primary);
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
 }
 
-.game-playtime {
+.game-meta {
+  display: flex;
+  gap: 12px;
   font-size: 12px;
   color: var(--text-muted);
 }
 
-/* ========== ALT PREVIEW ========== */
-.alt-preview {
+.game-card-bottom {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-  flex: 1;
-  margin-bottom: 12px;
-  min-height: 60px;
-}
-
-.alt-preview-item {
-  display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 6px;
-  background: var(--bg-glass);
-  backdrop-filter: blur(4px);
-  padding: 4px 10px;
-  border-radius: 8px;
-  border: 1px solid var(--border-color);
-  font-size: 13px;
-}
-
-.alt-preview-icon {
-  font-size: 12px;
-}
-
-.alt-preview-name {
-  color: var(--text-primary);
-  flex: 1;
-  font-weight: 500;
-  font-size: 13px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.alt-preview-level {
-  color: var(--text-dim);
-  font-size: 11px;
-  flex-shrink: 0;
-}
-
-.alt-preview-empty {
-  font-size: 12px;
-  color: var(--text-dim);
-  font-style: italic;
-  padding: 4px 0;
-}
-
-.alt-preview-more {
-  font-size: 11px;
-  color: var(--text-dim);
-  font-style: italic;
-  text-align: right;
-  padding: 2px 4px 0 0;
-}
-
-.game-card-footer {
+  padding-top: 8px;
   border-top: 1px solid var(--border-color);
-  padding-top: 10px;
-  text-align: right;
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--text-muted);
 }
 
-.view-all {
-  font-size: 12px;
+.game-edition {
   color: var(--text-dim);
-  transition: color 0.2s;
+  font-weight: 500;
 }
 
-.game-card:hover .view-all {
-  color: var(--gradient-start);
+.game-reviews {
+  color: var(--text-muted);
 }
 
 /* ========== ADD GAME CARD ========== */
 .add-game-card {
-  border-radius: 16px;
-  overflow: hidden;
-  cursor: pointer;
-  border: 2px dashed var(--border-dashed);
-  transition: all 0.3s ease;
-  background: rgba(255, 255, 255, 0.02);
-  min-height: 280px;
+  border: 2px dashed var(--border-light);
+  background: transparent;
 }
 
 .add-game-card:hover {
   border-color: var(--gradient-start);
   background: rgba(108, 140, 255, 0.03);
-  transform: translateY(-6px);
 }
 
 .add-game-glass {
   background: var(--bg-glass);
   backdrop-filter: blur(8px);
-  padding: 18px 16px;
-  min-height: 280px;
+  min-height: 220px;
   display: flex;
   align-items: center;
   justify-content: center;
+  border: none;
 }
 
 .add-game-content {
   text-align: center;
 }
 
-.add-game-icon {
+.add-icon {
   font-size: 32px;
+  color: var(--gradient-start);
   display: block;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
-.add-game-content h4 {
+.add-title {
   margin: 0;
   color: var(--text-dim);
   font-size: 16px;
   font-weight: 400;
 }
 
-.add-game-sub {
+.add-sub {
   color: var(--text-dim);
   font-size: 12px;
-  margin: 4px 0 0 0;
+  margin: 2px 0 0 0;
 }
 
-/* ========== ALT CARD ========== */
-.alt-card {
-  border-radius: 16px;
-  overflow: hidden;
-  background-size: cover;
-  background-position: center;
-  transition: all 0.3s ease;
-  min-height: 260px;
+/* ========== SEE MORE SECTION ========== */
+.see-more-section {
+  margin-top: 20px;
+  text-align: right;
 }
 
-.alt-card:hover {
-  transform: translateY(-6px);
+.see-more-link {
+  font-size: 14px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color 0.2s;
 }
 
-.alt-card-glass {
-  background: var(--bg-card);
-  backdrop-filter: blur(14px);
-  padding: 18px 16px 16px;
-  border: 1px solid var(--border-light);
-  border-radius: 16px;
-  min-height: 260px;
-  display: flex;
-  flex-direction: column;
-  transition: background 0.3s;
+.see-more-link:hover {
+  color: var(--gradient-start);
 }
 
-.alt-card:hover .alt-card-glass {
-  background: var(--bg-card-hover);
+.see-more-link i {
+  margin-left: 4px;
 }
 
-.alt-card-header {
+/* ========== RIGHT PANEL ========== */
+.right-panel {
+  width: 240px;
+  background: var(--bg-panel);
+  backdrop-filter: blur(20px);
+  border-left: 1px solid var(--border-color);
+  padding: 24px 18px;
+  flex-shrink: 0;
+  overflow-y: auto;
+  max-height: 100vh;
+}
+
+.panel-section {
+  margin-bottom: 24px;
+}
+
+.panel-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
+}
+
+.total-hours {
+  background: var(--bg-glass);
+  border-radius: 12px;
+  padding: 16px;
+  text-align: center;
+  border: 1px solid var(--border-color);
+  margin-bottom: 12px;
+}
+
+.total-hours-value {
+  display: block;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.total-hours-label {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.panel-stat {
+  text-align: center;
+  background: var(--bg-glass);
+  border-radius: 10px;
+  padding: 10px 8px;
+  border: 1px solid var(--border-color);
+}
+
+.panel-stat-value {
+  display: block;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.panel-stat-label {
+  font-size: 10px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+}
+
+.panel-game-card {
+  background: var(--bg-glass);
+  border-radius: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  margin-bottom: 8px;
+}
+
+.panel-game-card.highlight {
+  border-color: var(--gradient-start);
+  background: rgba(108, 140, 255, 0.05);
+}
+
+.panel-game-info {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 12px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid var(--border-color);
 }
 
-.alt-icon {
+.panel-game-icon {
   font-size: 20px;
-  flex-shrink: 0;
+  color: var(--gradient-start);
 }
 
-.alt-name {
-  flex: 1;
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text-primary);
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.alt-level-badge {
-  background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
-  color: #fff;
-  padding: 2px 10px;
-  border-radius: 12px;
-  font-size: 11px;
-  font-weight: 600;
-  flex-shrink: 0;
-}
-
-.alt-card-stats {
-  display: flex;
-  gap: 20px;
-  margin-bottom: 12px;
-}
-
-.alt-stat {
-  display: flex;
-  flex-direction: column;
-}
-
-.stat-label {
-  font-size: 10px;
-  text-transform: uppercase;
-  color: var(--text-dim);
-  letter-spacing: 0.5px;
-}
-
-.stat-value {
+.panel-game-name {
   font-size: 14px;
-  color: var(--text-secondary);
+  color: var(--text-primary);
   font-weight: 500;
 }
 
-.alt-progress {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 8px;
-  padding-top: 10px;
-  border-top: 1px solid var(--border-color);
-  flex: 1;
-  align-content: flex-start;
-}
-
-.progress-label {
+.panel-game-hours {
   font-size: 11px;
   color: var(--text-dim);
-  width: 100%;
 }
 
-.progress-tag {
-  background: var(--progress-bg);
-  backdrop-filter: blur(4px);
-  padding: 2px 10px;
-  border-radius: 12px;
-  font-size: 10px;
-  color: var(--gradient-start);
-  border: 1px solid var(--tag-border);
-}
-
-.alt-no-progress {
-  font-size: 11px;
-  color: var(--text-dim);
-  font-style: italic;
-  padding-top: 10px;
-  border-top: 1px solid var(--border-color);
-  flex: 1;
-}
-
-/* ========== DETAIL VIEW ========== */
-.detail-header {
+.panel-download-progress {
+  margin-top: 4px;
   display: flex;
   align-items: center;
-  gap: 20px;
-  padding-bottom: 16px;
-  margin-bottom: 20px;
-  border-bottom: 1px solid var(--border-color);
+  gap: 8px;
 }
 
-.back-btn {
-  background: var(--bg-glass);
-  border: 1px solid var(--border-light);
-  color: var(--text-secondary);
-  padding: 8px 16px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 14px;
-  transition: all 0.2s;
+.progress-bar {
+  height: 4px;
+  background: linear-gradient(90deg, var(--gradient-start), var(--gradient-end));
+  border-radius: 4px;
+  width: 0%;
+  transition: width 0.6s ease;
 }
 
-.back-btn:hover {
-  background: var(--bg-secondary);
+.progress-text {
+  font-size: 10px;
+  color: var(--text-dim);
 }
 
-.detail-header h2 {
-  margin: 0;
-  font-size: 22px;
-  color: var(--text-primary);
-  flex: 1;
+/* ========== DETAIL OVERLAY ========== */
+.detail-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(10px);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.3s ease;
 }
 
-.alt-count-detail {
-  background: var(--bg-glass);
-  padding: 4px 14px;
+.detail-panel {
+  background: var(--bg-modal);
+  backdrop-filter: blur(20px);
   border-radius: 20px;
-  font-size: 13px;
+  padding: 32px;
+  max-width: 700px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
   border: 1px solid var(--border-light);
+  animation: scaleIn 0.3s ease;
+}
+
+@keyframes scaleIn {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.detail-close {
+  float: right;
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 24px;
+  cursor: pointer;
+}
+
+.detail-close:hover {
+  color: var(--text-secondary);
+}
+
+.detail-title {
+  font-size: 24px;
+  color: var(--text-primary);
+  margin: 0 0 4px 0;
+}
+
+.detail-count {
+  font-size: 14px;
+  color: var(--text-dim);
 }
 
 .detail-actions {
-  margin-bottom: 24px;
+  margin: 16px 0 20px 0;
 }
 
 .add-alt-btn {
@@ -1126,7 +1305,7 @@ onMounted(() => {
   color: #fff;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s, transform 0.1s;
+  transition: all 0.2s;
 }
 
 .add-alt-btn:hover {
@@ -1134,23 +1313,110 @@ onMounted(() => {
   transform: scale(1.02);
 }
 
-/* ========== EMPTY STATE ========== */
+.alt-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.alt-card {
+  background: var(--bg-glass);
+  border-radius: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--border-color);
+}
+
+.alt-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.alt-icon {
+  font-size: 16px;
+  color: var(--gradient-start);
+}
+
+.alt-name {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.alt-level-badge {
+  background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+  color: #fff;
+  padding: 1px 10px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.alt-card-stats {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.alt-stat .stat-label {
+  font-size: 9px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.alt-stat .stat-value {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.alt-progress {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-color);
+}
+
+.progress-label {
+  font-size: 10px;
+  color: var(--text-dim);
+  width: 100%;
+}
+
+.progress-tag {
+  background: var(--bg-glass);
+  padding: 2px 8px;
+  border-radius: 8px;
+  font-size: 9px;
+  color: var(--gradient-start);
+  border: 1px solid rgba(108, 140, 255, 0.15);
+}
+
+.alt-no-progress {
+  font-size: 10px;
+  color: var(--text-dim);
+  font-style: italic;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-color);
+}
+
+/* ========== EMPTY STATE & LOADING ========== */
 .empty-state {
-  grid-column: 1 / -1;
   text-align: center;
-  padding: 60px 0;
+  padding: 30px 0;
 }
 
 .empty-state p {
-  font-size: 18px;
+  font-size: 16px;
   color: var(--text-dim);
   margin: 0;
 }
 
 .empty-sub {
-  font-size: 14px;
+  font-size: 13px;
   color: var(--text-dim);
-  margin-top: 6px;
 }
 
 .loading {
@@ -1175,7 +1441,7 @@ onMounted(() => {
   position: fixed;
   top: 0;
   right: 0;
-  width: 320px;
+  width: 300px;
   height: 100vh;
   background: var(--bg-menu);
   backdrop-filter: blur(20px);
@@ -1190,11 +1456,6 @@ onMounted(() => {
   to { transform: translateX(0); }
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
 .menu-header {
   display: flex;
   align-items: center;
@@ -1206,6 +1467,7 @@ onMounted(() => {
 
 .menu-avatar {
   font-size: 36px;
+  color: var(--gradient-start);
 }
 
 .menu-header h4 {
@@ -1312,11 +1574,6 @@ onMounted(() => {
   max-width: 90%;
   border: 1px solid var(--border-light);
   animation: scaleIn 0.2s ease;
-}
-
-@keyframes scaleIn {
-  from { transform: scale(0.95); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
 }
 
 .modal-header {
@@ -1441,23 +1698,5 @@ onMounted(() => {
 
 .modal-confirm:active {
   transform: scale(0.97);
-}
-
-/* ========== SCROLLBAR ========== */
-::-webkit-scrollbar {
-  width: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--border-light);
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--gradient-start);
 }
 </style>

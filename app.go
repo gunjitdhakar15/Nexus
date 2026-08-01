@@ -126,3 +126,51 @@ func (a *App) GetAltsByGame(gameID string) ([]models.AltAccount, error) {
     }
     return alts, nil
 }
+
+// AddAlt adds a new alt account for a game
+func (a *App) AddAlt(gameID, name string, level int, playtimeHours int, lastPlayed string, progress map[string]interface{}) (string, error) {
+    id := generateID()
+    progressJSON, _ := json.Marshal(progress)
+    _, err := a.db.Exec(
+        `INSERT INTO alt_accounts (id, game_id, name, level, playtime_hours, last_played, progress) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        id, gameID, name, level, playtimeHours, lastPlayed, string(progressJSON),
+    )
+    if err != nil {
+        return "", err
+    }
+    return id, nil
+}
+
+// UpdateAlt updates an existing alt account
+func (a *App) UpdateAlt(id, name string, level int, playtimeHours int, lastPlayed string, progress map[string]interface{}) error {
+    progressJSON, _ := json.Marshal(progress)
+    _, err := a.db.Exec(
+        `UPDATE alt_accounts SET name = ?, level = ?, playtime_hours = ?, last_played = ?, progress = ? WHERE id = ?`,
+        name, level, playtimeHours, lastPlayed, string(progressJSON), id,
+    )
+    return err
+}
+
+// DeleteAlt deletes an alt account
+func (a *App) DeleteAlt(id string) error {
+    _, err := a.db.Exec(`DELETE FROM alt_accounts WHERE id = ?`, id)
+    return err
+}
+
+// UpdateGame updates a game's title and cover art
+func (a *App) UpdateGame(id, title, coverArt string) error {
+    _, err := a.db.Exec(`UPDATE games SET title = ?, cover_art = ? WHERE id = ?`, title, coverArt, id)
+    return err
+}
+
+// DeleteGame deletes a game and all its alts (cascade)
+func (a *App) DeleteGame(id string) error {
+    _, err := a.db.Exec(`DELETE FROM games WHERE id = ?`, id)
+    return err
+}
+
+// UpdateGamePlaytime updates the total playtime for a game
+func (a *App) UpdateGamePlaytime(id string, playtime int) error {
+    _, err := a.db.Exec(`UPDATE games SET total_playtime = ? WHERE id = ?`, playtime, id)
+    return err
+}
