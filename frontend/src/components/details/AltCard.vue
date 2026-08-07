@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { UpdateAlt, DeleteAlt } from '../../../wailsjs/go/main/App'
+import { api } from '../../services/api'
 
 interface Props {
   alt: {
@@ -69,7 +69,7 @@ const handleSave = async () => {
   error.value = ''
 
   try {
-    await UpdateAlt(
+    await api.UpdateAlt(
       props.alt.id,
       editName.value.trim(),
       editLevel.value,
@@ -100,7 +100,7 @@ const handleDelete = async () => {
   
   loading.value = true
   try {
-    await DeleteAlt(props.alt.id)
+    await api.DeleteAlt(props.alt.id)
     emit('delete', props.alt.id)
   } catch (err: any) {
     error.value = err.message || 'Failed to delete alt'

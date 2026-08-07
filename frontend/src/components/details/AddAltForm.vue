@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { AddAlt } from '../../../wailsjs/go/main/App'
+import { api } from '../../services/api'
 
 interface Props {
   gameId: string
@@ -53,7 +53,7 @@ const handleSubmit = async () => {
   error.value = ''
 
   try {
-    const altId = await AddAlt(
+    const altId = await api.AddAlt(
       props.gameId,
       altName.value.trim(),
       altLevel.value,

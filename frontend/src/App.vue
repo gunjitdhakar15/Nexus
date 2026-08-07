@@ -1,25 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { GetAllGames, AddGame, GetAltsByGame, AddAlt, UpdateAlt, DeleteAlt } from '../wailsjs/go/main/App'
+import { api, type Game, type AltAccount } from './services/api'
 import AddAltModal from '@/components/modals/AddAltModal.vue'
 import AltCard from '@/components/details/AltCard.vue'
-
-interface Game {
-  id: string
-  title: string
-  coverArt: string
-  totalPlaytime: number
-}
-
-interface AltAccount {
-  id: string
-  gameId: string
-  name: string
-  level: number
-  playtimeHours: number
-  lastPlayed: string
-  progress: Record<string, any>
-}
 
 // ========== THEME ==========
 const isDarkMode = ref(true)
@@ -99,7 +82,7 @@ const filteredGames = computed(() => {
 const loadGames = async () => {
   loading.value = true
   try {
-    const result = await GetAllGames()
+    const result = await api.GetAllGames()
     games.value = result
     
     for (const game of result) {
@@ -115,7 +98,7 @@ const loadGames = async () => {
 
 const loadAltPreview = async (gameId: string) => {
   try {
-    const result = await GetAltsByGame(gameId)
+    const result = await api.GetAltsByGame(gameId)
     altPreviews.value[gameId] = result.slice(0, 3)
   } catch (err) {
     console.error('Error loading alt preview:', err)
@@ -128,7 +111,7 @@ const handleAddGame = async () => {
   if (!title) return
   
   try {
-    await AddGame(title, '')
+    await api.AddGame(title, '')
     newGameTitle.value = ''
     showAddGameModal.value = false
     await loadGames()
@@ -153,7 +136,7 @@ const goBack = () => {
 
 const loadFullAlts = async (gameId: string) => {
   try {
-    const result = await GetAltsByGame(gameId)
+    const result = await api.GetAltsByGame(gameId)
     gameAlts.value = result
   } catch (err) {
     console.error('Error loading full alts:', err)
