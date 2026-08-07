@@ -221,6 +221,22 @@ const getGameIcon = (title: string): string => {
 // ========== HELPERS ==========
 const showAlert = (msg: string) => alert(msg)
 
+// Deterministic review count (stable across renders, unlike Math.random)
+const getReviewCount = (game: Game): number => {
+  let hash = 0
+  for (let i = 0; i < game.title.length; i++) {
+    hash = (hash * 31 + game.title.charCodeAt(i)) % 997
+  }
+  return hash + 10
+}
+
+// Feature isn't wired in the web demo
+const demoNotice = (feature: string) => {
+  alert(
+    `${feature} isn't available in this web demo.\nDownload the desktop app for the full experience.`
+  )
+}
+
 // ========== LIFECYCLE ==========
 onMounted(() => {
   const savedTheme = localStorage.getItem('theme')
@@ -311,6 +327,13 @@ onMounted(() => {
 
       <!-- ========== MAIN CONTENT ========== -->
       <main class="main-content">
+        <!-- DEMO BANNER -->
+        <div class="demo-banner">
+          <i class="fas fa-flask"></i>
+          Demo preview — sample data, changes reset on reload.
+          <a href="https://github.com/gunjitdhakar15/Nexus/releases/latest" target="_blank" rel="noopener">Get the desktop app</a>
+        </div>
+
         <!-- HEADER -->
         <header class="main-header">
           <div class="header-left">
@@ -383,7 +406,7 @@ onMounted(() => {
                   </div>
                   <div class="game-card-bottom">
                     <span class="game-edition">Standard Edition</span>
-                    <span class="game-reviews"><i class="fas fa-star" style="color:#fbbf24;"></i> +{{ Math.floor(Math.random() * 50) + 10 }} Reviews</span>
+                    <span class="game-reviews"><i class="fas fa-star" style="color:#fbbf24;"></i> +{{ getReviewCount(game) }} Reviews</span>
                   </div>
                 </div>
               </div>
@@ -531,9 +554,9 @@ onMounted(() => {
             <i :class="isDarkMode ? 'fas fa-sun' : 'fas fa-moon'"></i>
             {{ isDarkMode ? 'Light Mode' : 'Dark Mode' }}
           </div>
-          <div class="menu-item"><i class="fas fa-cog"></i> Settings</div>
-          <div class="menu-item"><i class="fas fa-database"></i> Backup</div>
-          <div class="menu-item menu-item-danger"><i class="fas fa-sign-out-alt"></i> Logout</div>
+          <div class="menu-item" @click="demoNotice('Settings')"><i class="fas fa-cog"></i> Settings</div>
+          <div class="menu-item" @click="demoNotice('Backup')"><i class="fas fa-database"></i> Backup</div>
+          <div class="menu-item menu-item-danger" @click="demoNotice('Logout')"><i class="fas fa-sign-out-alt"></i> Logout</div>
         </div>
       </div>
     </div>
@@ -558,7 +581,7 @@ onMounted(() => {
           <div class="form-group">
             <label><i class="fas fa-image"></i> Cover Art (optional)</label>
             <div class="file-upload">
-              <button class="file-upload-btn"><i class="fas fa-folder-open"></i> Choose File</button>
+              <button class="file-upload-btn" @click="demoNotice('File upload')"><i class="fas fa-folder-open"></i> Choose File</button>
               <span class="file-upload-text">No file chosen</span>
             </div>
           </div>
@@ -758,6 +781,35 @@ onMounted(() => {
   padding: 24px 32px;
   overflow-y: auto;
   max-height: 100vh;
+}
+
+/* ========== DEMO BANNER ========== */
+.demo-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  margin-bottom: 16px;
+  border-radius: 10px;
+  background: rgba(108, 140, 255, 0.08);
+  border: 1px solid rgba(108, 140, 255, 0.2);
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.demo-banner i {
+  color: var(--gradient-start);
+}
+
+.demo-banner a {
+  color: var(--gradient-start);
+  text-decoration: none;
+  font-weight: 600;
+  margin-left: auto;
+}
+
+.demo-banner a:hover {
+  text-decoration: underline;
 }
 
 /* ========== HEADER ========== */
