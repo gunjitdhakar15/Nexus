@@ -6,16 +6,30 @@ export function AddAlt(arg1:string,arg2:string,arg3:number,arg4:number,arg5:stri
 
 export function AddGame(arg1:string,arg2:string):Promise<string>;
 
+export function AddGameWithDetails(arg1:string,arg2:string,arg3:number,arg4:number,arg5:string,arg6:string,arg7:number,arg8:number):Promise<string>;
+
+export function AddSteamGames(arg1:Array<models.SteamGame>):Promise<number>;
+
 export function DeleteAlt(arg1:string):Promise<void>;
 
 export function DeleteGame(arg1:string):Promise<void>;
 
+export function FetchGameArtwork(arg1:string):Promise<models.GameDetails>;
+
+export function FetchSteamLibrary(arg1:string,arg2:string):Promise<Array<models.SteamGame>>;
+
 export function GetAllGames():Promise<Array<models.Game>>;
 
 export function GetAltsByGame(arg1:string):Promise<Array<models.AltAccount>>;
+
+export function GetSettings():Promise<Record<string, string>>;
+
+export function SaveSettings(arg1:Record<string, string>):Promise<void>;
 
 export function UpdateAlt(arg1:string,arg2:string,arg3:number,arg4:number,arg5:string,arg6:Record<string, any>):Promise<void>;
 
 export function UpdateGame(arg1:string,arg2:string,arg3:string):Promise<void>;
 
 export function UpdateGamePlaytime(arg1:string,arg2:number):Promise<void>;
+
+export function UpdateGameWithDetails(arg1:string,arg2:string,arg3:string,arg4:number,arg5:number,arg6:string,arg7:string,arg8:number,arg9:number):Promise<void>;

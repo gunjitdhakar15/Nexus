@@ -1,10 +1,17 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useGames } from '@/stores/games'
 import { useUI, demoNotice } from '@/stores/ui'
 
+const router = useRouter()
 const { isDarkMode, initTheme, toggleTheme, showMenu } = useUI()
 const { games, totalAlts, totalPlaytime } = useGames()
+
+const goTo = (name: string) => {
+  showMenu.value = false
+  router.push({ name })
+}
 
 onMounted(() => initTheme())
 </script>
@@ -49,7 +56,7 @@ onMounted(() => initTheme())
             <i :class="isDarkMode ? 'fas fa-sun' : 'fas fa-moon'"></i>
             {{ isDarkMode ? 'Light Mode' : 'Dark Mode' }}
           </div>
-          <div class="menu-item" @click="demoNotice('Settings')"><i class="fas fa-cog"></i> Settings</div>
+          <div class="menu-item" @click="goTo('settings')"><i class="fas fa-cog"></i> Settings</div>
           <div class="menu-item" @click="demoNotice('Backup')"><i class="fas fa-database"></i> Backup</div>
           <div class="menu-item menu-item-danger" @click="demoNotice('Logout')"><i class="fas fa-sign-out-alt"></i> Logout</div>
         </div>

@@ -1,5 +1,5 @@
 import { ref, computed } from 'vue'
-import { api, type Game, type AltAccount } from '../services/api'
+import { api, type Game, type AltAccount, type SteamGame } from '../services/api'
 
 const games = ref<Game[]>([])
 const loading = ref(false)
@@ -53,6 +53,29 @@ const loadAltPreview = async (gameId: string) => {
 
 const addGame = async (title: string): Promise<boolean> => {
   try {
+    // If a RAWG key is configured, auto-fetch cover art + metadata first.
+    const settings = await api.GetSettings()
+    if (settings['rawg_api_key']) {
+      try {
+        const details = await api.FetchGameArtwork(title)
+        if (details.coverUrl || details.rawgId) {
+          await api.AddGameWithDetails(
+            details.title || title,
+            details.coverUrl,
+            details.metacritic,
+            details.rating,
+            details.released,
+            details.genres.join(', '),
+            details.rawgId,
+            0
+          )
+          await loadGames()
+          return true
+        }
+      } catch (err) {
+        console.warn('RAWG enrichment failed, adding without cover:', err)
+      }
+    }
     await api.AddGame(title, '')
     await loadGames()
     return true
@@ -61,6 +84,12 @@ const addGame = async (title: string): Promise<boolean> => {
     alert('Error adding game: ' + err.message)
     return false
   }
+}
+
+const importSteamGames = async (games: SteamGame[]): Promise<number> => {
+  const added = await api.AddSteamGames(games)
+  if (added > 0) await loadGames()
+  return added
 }
 
 export function useGames() {
@@ -75,5 +104,6 @@ export function useGames() {
     loadGames,
     loadAltPreview,
     addGame,
+    importSteamGames,
   }
 }

@@ -2,19 +2,51 @@ import {
   GetAllGames as WailsGetAllGames,
   GetAltsByGame as WailsGetAltsByGame,
   AddGame as WailsAddGame,
+  AddGameWithDetails as WailsAddGameWithDetails,
+  AddSteamGames as WailsAddSteamGames,
+  UpdateGameWithDetails as WailsUpdateGameWithDetails,
   AddAlt as WailsAddAlt,
   UpdateAlt as WailsUpdateAlt,
   DeleteAlt as WailsDeleteAlt,
   UpdateGame as WailsUpdateGame,
   DeleteGame as WailsDeleteGame,
   UpdateGamePlaytime as WailsUpdateGamePlaytime,
+  FetchGameArtwork as WailsFetchGameArtwork,
+  FetchSteamLibrary as WailsFetchSteamLibrary,
+  GetSettings as WailsGetSettings,
+  SaveSettings as WailsSaveSettings,
 } from '../../wailsjs/go/main/App'
+import { isDesktopApp } from '../utils/env'
 
 export interface Game {
   id: string
   title: string
   coverArt: string
   totalPlaytime: number
+  metacritic?: number
+  rating?: number
+  released?: string
+  genres?: string
+  rawgId?: number
+  steamAppId?: number
+}
+
+export interface GameDetails {
+  title: string
+  coverUrl: string
+  rating: number
+  metacritic: number
+  released: string
+  genres: string[]
+  rawgId: number
+}
+
+export interface SteamGame {
+  appId: number
+  title: string
+  playtimeHours: number
+  coverUrl: string
+  headerUrl: string
 }
 
 export interface AltAccount {
@@ -26,12 +58,6 @@ export interface AltAccount {
   lastPlayed: string
   progress: Record<string, any>
 }
-
-// True when running inside the Wails desktop app.
-// In a plain browser (demo / GitHub Pages) this is false,
-// so the API falls back to the in-memory demo data below.
-const isDesktopApp = () =>
-  typeof window !== 'undefined' && !!(window as any).go?.main?.App
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
@@ -71,6 +97,9 @@ const demoAlts: Record<string, AltAccount[]> = {
 }
 
 // ========== API ==========
+// When running inside the Wails desktop app every call goes to the Go
+// backend. In a plain browser (demo / GitHub Pages) it falls back to the
+// in-memory demo data above.
 export const api = {
   async GetAllGames(): Promise<Game[]> {
     if (isDesktopApp()) return WailsGetAllGames()
@@ -91,6 +120,50 @@ export const api = {
     demoGames.push({ id, title, coverArt, totalPlaytime: 0 })
     demoAlts[id] = []
     return id
+  },
+
+  async AddGameWithDetails(
+    title: string,
+    coverArt: string,
+    metacritic: number,
+    rating: number,
+    released: string,
+    genres: string,
+    rawgId: number,
+    steamAppId: number
+  ): Promise<string> {
+    if (isDesktopApp()) return WailsAddGameWithDetails(title, coverArt, metacritic, rating, released, genres, rawgId, steamAppId)
+    await delay(300)
+    const id = 'g' + Math.random().toString(36).slice(2, 8)
+    demoGames.push({ id, title, coverArt, totalPlaytime: 0, metacritic, rating, released, genres, rawgId, steamAppId })
+    demoAlts[id] = []
+    return id
+  },
+
+  async UpdateGameWithDetails(
+    id: string,
+    title: string,
+    coverArt: string,
+    metacritic: number,
+    rating: number,
+    released: string,
+    genres: string,
+    rawgId: number,
+    steamAppId: number
+  ): Promise<void> {
+    if (isDesktopApp()) return WailsUpdateGameWithDetails(id, title, coverArt, metacritic, rating, released, genres, rawgId, steamAppId)
+    await delay(250)
+    const game = demoGames.find((g) => g.id === id)
+    if (game) {
+      game.title = title
+      game.coverArt = coverArt
+      game.metacritic = metacritic
+      game.rating = rating
+      game.released = released
+      game.genres = genres
+      game.rawgId = rawgId
+      game.steamAppId = steamAppId
+    }
   },
 
   async AddAlt(gameId: string, name: string, level: number, playtimeHours: number, lastPlayed: string, progress: Record<string, any>): Promise<string> {
@@ -148,5 +221,86 @@ export const api = {
     await delay(150)
     const game = demoGames.find((g) => g.id === id)
     if (game) game.totalPlaytime = playtime
+  },
+
+  // ---------- SETTINGS ----------
+
+  async GetSettings(): Promise<Record<string, string>> {
+    if (isDesktopApp()) return WailsGetSettings()
+    await delay(200)
+    try {
+      const raw = localStorage.getItem('nexusSettings')
+      return raw ? JSON.parse(raw) : {}
+    } catch {
+      return {}
+    }
+  },
+
+  async SaveSettings(settings: Record<string, string>): Promise<void> {
+    if (isDesktopApp()) return WailsSaveSettings(settings)
+    await delay(200)
+    const current = await api.GetSettings()
+    localStorage.setItem('nexusSettings', JSON.stringify({ ...current, ...settings }))
+  },
+
+  // ---------- RAWG ----------
+
+  async FetchGameArtwork(title: string): Promise<GameDetails> {
+    const empty = (): GameDetails => ({ title, coverUrl: '', rating: 0, metacritic: 0, released: '', genres: [], rawgId: 0 })
+    if (isDesktopApp()) return WailsFetchGameArtwork(title)
+    await delay(400)
+    // In the browser demo, RAWG supports CORS so a user-provided key works too.
+    const settings = await api.GetSettings()
+    const key = settings['rawg_api_key']
+    if (!key) return empty()
+    try {
+      const res = await fetch(
+        `https://api.rawg.io/api/games?key=${encodeURIComponent(key)}&search=${encodeURIComponent(title)}&page_size=1`
+      )
+      if (!res.ok) return empty()
+      const data = await res.json()
+      const r = data?.results?.[0]
+      if (!r) return empty()
+      return {
+        title: r.name || title,
+        coverUrl: r.background_image || '',
+        rating: r.rating || 0,
+        metacritic: r.metacritic || 0,
+        released: r.released || '',
+        rawgId: r.id || 0,
+        genres: (r.genres || []).map((g: any) => g.name),
+      }
+    } catch {
+      return empty()
+    }
+  },
+
+  // ---------- STEAM ----------
+
+  async FetchSteamLibrary(apiKey: string, steamId: string): Promise<SteamGame[]> {
+    if (isDesktopApp()) return WailsFetchSteamLibrary(apiKey, steamId)
+    await delay(400)
+    // Steam's Web API does not send CORS headers, so browser fetch is blocked.
+    throw new Error('Steam import is available in the desktop app only.')
+  },
+
+  async AddSteamGames(games: SteamGame[]): Promise<number> {
+    if (isDesktopApp()) return WailsAddSteamGames(games)
+    await delay(300)
+    let added = 0
+    for (const g of games) {
+      if (demoGames.some((dg) => dg.title === g.title)) continue
+      const id = 'g' + Math.random().toString(36).slice(2, 8)
+      demoGames.push({
+        id,
+        title: g.title,
+        coverArt: g.coverUrl,
+        totalPlaytime: g.playtimeHours,
+        steamAppId: g.appId,
+      })
+      demoAlts[id] = []
+      added++
+    }
+    return added
   },
 }

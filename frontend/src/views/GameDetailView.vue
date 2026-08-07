@@ -95,10 +95,17 @@ onMounted(async () => {
       </button>
 
       <div class="detail-title-wrap">
-        <i :class="['fas', getGameIcon(game?.title || ''), 'detail-game-icon']"></i>
+        <img v-if="game?.coverArt" :src="game.coverArt" class="detail-cover" alt="" />
+        <i v-else :class="['fas', getGameIcon(game?.title || ''), 'detail-game-icon']"></i>
         <div>
           <h1 class="detail-title">{{ game?.title || 'Game' }}</h1>
           <span class="detail-count">{{ gameAlts.length }} Alts</span>
+          <div class="detail-meta" v-if="game && (game.rating || game.metacritic || game.released || game.genres)">
+            <span v-if="game.rating" class="detail-meta-badge"><i class="fas fa-star"></i> {{ game.rating.toFixed(1) }}</span>
+            <span v-if="game.metacritic" class="detail-meta-badge"><i class="fas fa-crown"></i> {{ game.metacritic }}</span>
+            <span v-if="game.released" class="detail-meta-badge"><i class="fas fa-calendar"></i> {{ game.released }}</span>
+            <span v-if="game.genres" class="detail-meta-badge"><i class="fas fa-tags"></i> {{ game.genres }}</span>
+          </div>
         </div>
       </div>
 
@@ -199,6 +206,37 @@ onMounted(async () => {
   font-size: 36px;
   color: var(--gradient-start);
   filter: drop-shadow(0 0 14px rgba(108, 140, 255, 0.4));
+}
+
+.detail-cover {
+  width: 80px;
+  height: 44px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--border-light);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  flex-shrink: 0;
+}
+
+.detail-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.detail-meta-badge {
+  font-size: 12px;
+  padding: 3px 10px;
+  border-radius: 12px;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+}
+
+.detail-meta-badge i {
+  margin-right: 4px;
+  color: var(--gradient-start);
 }
 
 .detail-title {

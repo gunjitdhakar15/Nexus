@@ -10,6 +10,14 @@ export function AddGame(arg1, arg2) {
   return window['go']['main']['App']['AddGame'](arg1, arg2);
 }
 
+export function AddGameWithDetails(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8) {
+  return window['go']['main']['App']['AddGameWithDetails'](arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
+}
+
+export function AddSteamGames(arg1) {
+  return window['go']['main']['App']['AddSteamGames'](arg1);
+}
+
 export function DeleteAlt(arg1) {
   return window['go']['main']['App']['DeleteAlt'](arg1);
 }
@@ -18,12 +26,28 @@ export function DeleteGame(arg1) {
   return window['go']['main']['App']['DeleteGame'](arg1);
 }
 
+export function FetchGameArtwork(arg1) {
+  return window['go']['main']['App']['FetchGameArtwork'](arg1);
+}
+
+export function FetchSteamLibrary(arg1, arg2) {
+  return window['go']['main']['App']['FetchSteamLibrary'](arg1, arg2);
+}
+
 export function GetAllGames() {
   return window['go']['main']['App']['GetAllGames']();
 }
 
 export function GetAltsByGame(arg1) {
   return window['go']['main']['App']['GetAltsByGame'](arg1);
+}
+
+export function GetSettings() {
+  return window['go']['main']['App']['GetSettings']();
+}
+
+export function SaveSettings(arg1) {
+  return window['go']['main']['App']['SaveSettings'](arg1);
 }
 
 export function UpdateAlt(arg1, arg2, arg3, arg4, arg5, arg6) {
@@ -36,4 +60,8 @@ export function UpdateGame(arg1, arg2, arg3) {
 
 export function UpdateGamePlaytime(arg1, arg2) {
   return window['go']['main']['App']['UpdateGamePlaytime'](arg1, arg2);
+}
+
+export function UpdateGameWithDetails(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9) {
+  return window['go']['main']['App']['UpdateGameWithDetails'](arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9);
 }

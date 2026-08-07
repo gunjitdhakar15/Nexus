@@ -3,19 +3,30 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useGames } from '@/stores/games'
 import { useUI, demoNotice } from '@/stores/ui'
+import { useSettings } from '@/stores/settings'
 import { getGameIcon } from '@/utils/gameIcons'
-import type { Game } from '@/services/api'
+import { api, type Game, type SteamGame } from '@/services/api'
+import { isDesktopDemo } from '@/utils/env'
 
 const router = useRouter()
 const gamesStore = useGames()
 const { isDarkMode, toggleTheme, showMenu } = useUI()
+const { steamApiKey, steamId, loadSettings } = useSettings()
 
-const { games, loading, altPreviews, totalAlts, totalPlaytime, mostPlayedGame, recentGames, addGame } = gamesStore
+const { games, loading, altPreviews, totalAlts, totalPlaytime, mostPlayedGame, recentGames, addGame, importSteamGames } = gamesStore
 
 const showAddGameModal = ref(false)
 const newGameTitle = ref('')
 const searchQuery = ref('')
 const selectedCategory = ref('Popular')
+
+const showSteamModal = ref(false)
+const steamFetching = ref(false)
+const steamImporting = ref(false)
+const steamResults = ref<SteamGame[]>([])
+const steamSelected = ref<Set<string>>(new Set())
+const steamError = ref('')
+const steamNotice = ref('')
 
 const filteredGames = computed(() => {
   let result = games.value
@@ -49,10 +60,71 @@ const handleAddGame = async () => {
   }
 }
 
+const openSteamModal = async () => {
+  steamError.value = ''
+  steamNotice.value = ''
+  steamResults.value = []
+  steamSelected.value = new Set()
+  if (isDesktopDemo()) {
+    steamNotice.value = 'Steam import works in the desktop app. Download it from the link above.'
+  }
+  if (steamApiKey.value === '' && steamId.value === '') {
+    await loadSettings()
+  }
+  showSteamModal.value = true
+}
+
+const fetchSteamGames = async () => {
+  if (!steamApiKey.value || !steamId.value) {
+    steamError.value = 'Enter both your Steam API key and Steam ID first.'
+    return
+  }
+  steamFetching.value = true
+  steamError.value = ''
+  steamResults.value = []
+  steamSelected.value = new Set()
+  try {
+    const games = await api.FetchSteamLibrary(steamApiKey.value.trim(), steamId.value.trim())
+    steamResults.value = games
+    if (games.length > 0) {
+      steamResults.value.forEach((g) => steamSelected.value.add(g.appId.toString()))
+    }
+  } catch (err: any) {
+    steamError.value = err.message || 'Failed to fetch Steam library'
+  } finally {
+    steamFetching.value = false
+  }
+}
+
+const toggleSteamGame = (appId: number) => {
+  const key = appId.toString()
+  if (steamSelected.value.has(key)) steamSelected.value.delete(key)
+  else steamSelected.value.add(key)
+}
+
+const handleSteamImport = async () => {
+  const selected = steamResults.value.filter((g) => steamSelected.value.has(g.appId.toString()))
+  if (selected.length === 0) return
+  steamImporting.value = true
+  steamError.value = ''
+  try {
+    const added = await importSteamGames(selected)
+    showSteamModal.value = false
+    if (added === 0) {
+      alert('All selected games are already in your library.')
+    }
+  } catch (err: any) {
+    steamError.value = err.message || 'Failed to import games'
+  } finally {
+    steamImporting.value = false
+  }
+}
+
 onMounted(() => {
   if (games.value.length === 0) {
     gamesStore.loadGames()
   }
+  loadSettings()
 })
 </script>
 
@@ -167,6 +239,9 @@ onMounted(() => {
         <span class="category-tab see-more" @click="showAddGameModal = true">
           + Add Game
         </span>
+        <span class="category-tab see-more steam-tab" @click="openSteamModal">
+          <i class="fab fa-steam"></i> Import from Steam
+        </span>
       </div>
 
       <!-- ========== GAME GRID ========== -->
@@ -180,7 +255,11 @@ onMounted(() => {
             class="game-card"
             @click="selectGame(game)"
           >
-            <div class="game-card-glass">
+            <div
+              class="game-card-glass"
+              :class="{ 'has-cover': game.coverArt }"
+              :style="game.coverArt ? { backgroundImage: 'url(' + game.coverArt + ')' } : {}"
+            >
               <div class="game-card-content">
                 <div class="game-card-top">
                   <div class="game-card-header">
@@ -194,6 +273,11 @@ onMounted(() => {
                   <div class="game-meta">
                     <span><i class="fas fa-clock"></i> {{ game.totalPlaytime }}h</span>
                     <span><i class="fas fa-user-friends"></i> {{ altPreviews[game.id]?.length || 0 }} alts</span>
+                  </div>
+                  <div class="game-meta" v-if="game.rating || game.metacritic">
+                    <span v-if="game.rating" class="meta-rating"><i class="fas fa-star"></i> {{ game.rating.toFixed(1) }}</span>
+                    <span v-if="game.metacritic" class="meta-meta"><i class="fas fa-crown"></i> {{ game.metacritic }}</span>
+                    <span v-if="game.released" class="meta-release"><i class="fas fa-calendar"></i> {{ game.released.slice(0, 4) }}</span>
                   </div>
                 </div>
                 <div class="game-card-bottom">
@@ -309,5 +393,263 @@ onMounted(() => {
         </div>
       </div>
     </div>
+
+    <!-- ========== STEAM IMPORT MODAL ========== -->
+    <div v-if="showSteamModal" class="modal-overlay" @click="showSteamModal = false">
+      <div class="modal-content steam-modal" @click.stop>
+        <div class="modal-header">
+          <h3><i class="fab fa-steam"></i> Import from Steam</h3>
+          <button class="modal-close" @click="showSteamModal = false"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+          <div v-if="steamNotice" class="steam-notice">
+            <i class="fas fa-flask"></i> {{ steamNotice }}
+          </div>
+
+          <div v-if="steamResults.length === 0">
+            <div class="form-group">
+              <label>Steam Web API Key</label>
+              <input
+                v-model="steamApiKey"
+                placeholder="e.g. ABCDEF1234567890ABCDEF1234567890"
+              />
+            </div>
+            <div class="form-group">
+              <label>Steam ID (17-digit profile ID)</label>
+              <input
+                v-model="steamId"
+                placeholder="e.g. 76561198000000000"
+                @keyup.enter="fetchSteamGames"
+              />
+            </div>
+            <div class="steam-hint">
+              <i class="fas fa-info-circle"></i> Get both from
+              <a href="https://steamcommunity.com/dev/apikey" target="_blank" rel="noopener">steamcommunity.com/dev/apikey</a>
+            </div>
+          </div>
+
+          <div v-if="steamResults.length > 0" class="steam-results">
+            <div class="steam-count">
+              <i class="fas fa-check-circle"></i> {{ steamSelected.size }} of {{ steamResults.length }} games selected
+            </div>
+            <div class="steam-list">
+              <label
+                v-for="g in steamResults"
+                :key="g.appId"
+                class="steam-item"
+                :class="{ checked: steamSelected.has(g.appId.toString()) }"
+              >
+                <input
+                  type="checkbox"
+                  :checked="steamSelected.has(g.appId.toString())"
+                  @change="toggleSteamGame(g.appId)"
+                />
+                <img v-if="g.coverUrl" :src="g.coverUrl" class="steam-thumb" alt="" />
+                <i v-else class="fas fa-gamepad steam-thumb steam-thumb-icon"></i>
+                <span class="steam-item-name">{{ g.title }}</span>
+                <span class="steam-item-hours">{{ g.playtimeHours }}h</span>
+              </label>
+            </div>
+          </div>
+
+          <div v-if="steamError" class="steam-error">
+            <i class="fas fa-exclamation-circle"></i> {{ steamError }}
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="modal-cancel" @click="showSteamModal = false">Cancel</button>
+          <button
+            v-if="steamResults.length === 0"
+            class="modal-confirm"
+            @click="fetchSteamGames"
+            :disabled="steamFetching"
+          >
+            <i class="fas" :class="steamFetching ? 'fa-spinner fa-spin' : 'fa-download'"></i>
+            {{ steamFetching ? 'Fetching...' : 'Fetch Games' }}
+          </button>
+          <button
+            v-else
+            class="modal-confirm"
+            @click="handleSteamImport"
+            :disabled="steamImporting || steamSelected.size === 0"
+          >
+            <i class="fas" :class="steamImporting ? 'fa-spinner fa-spin' : 'fa-plus'"></i>
+            {{ steamImporting ? 'Importing...' : 'Import Selected' }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
+
+<style scoped>
+/* ========== COVER ART CARDS ========== */
+.game-card-glass.has-cover {
+  background-size: cover;
+  background-position: center;
+  position: relative;
+}
+
+.game-card-glass.has-cover::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(5, 8, 15, 0.15) 0%, rgba(5, 8, 15, 0.55) 55%, rgba(5, 8, 15, 0.92) 100%);
+}
+
+.game-card-glass.has-cover .game-card-content {
+  position: relative;
+  z-index: 1;
+}
+
+.game-card-glass.has-cover .game-card-header .game-icon {
+  opacity: 0;
+}
+
+.game-card-glass.has-cover .game-title {
+  font-size: 20px;
+}
+
+/* ========== META BADGES ========== */
+.meta-rating i {
+  color: #facc15;
+}
+
+.meta-meta i {
+  color: var(--gradient-start);
+}
+
+.meta-release i {
+  color: var(--text-dim);
+}
+
+/* ========== STEAM TAB ========== */
+.steam-tab {
+  color: #66c0f4;
+}
+
+.steam-tab:hover {
+  border-color: #66c0f4;
+  color: #66c0f4;
+}
+
+/* ========== STEAM MODAL ========== */
+.steam-modal {
+  width: 520px;
+}
+
+.steam-notice {
+  margin-bottom: 16px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: rgba(108, 140, 255, 0.1);
+  border: 1px solid rgba(108, 140, 255, 0.25);
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.steam-hint {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.steam-hint a {
+  color: var(--gradient-start);
+  text-decoration: none;
+}
+
+.steam-hint a:hover {
+  text-decoration: underline;
+}
+
+.steam-results {
+  margin-top: 8px;
+}
+
+.steam-count {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+.steam-count i {
+  color: #4ade80;
+}
+
+.steam-list {
+  max-height: 300px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.steam-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-glass);
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.steam-item:hover {
+  border-color: var(--border-light);
+}
+
+.steam-item.checked {
+  border-color: rgba(108, 140, 255, 0.4);
+  background: rgba(108, 140, 255, 0.08);
+}
+
+.steam-item input[type='checkbox'] {
+  accent-color: var(--gradient-start);
+  flex-shrink: 0;
+}
+
+.steam-thumb {
+  width: 46px;
+  height: 22px;
+  object-fit: cover;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.steam-thumb-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-secondary);
+  color: var(--text-dim);
+  font-size: 12px;
+}
+
+.steam-item-name {
+  flex: 1;
+  font-size: 14px;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.steam-item-hours {
+  font-size: 12px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.steam-error {
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
+  font-size: 13px;
+}
+</style>
