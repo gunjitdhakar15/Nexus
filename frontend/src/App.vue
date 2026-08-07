@@ -192,14 +192,6 @@ const getGameImage = (title: string): string => {
   return images[title] || 'https://images.unsplash.com/photo-1612287230202-1ff1d85d1bdf?w=600&h=400&fit=crop'
 }
 
-const getGameBackground = (title: string): string => {
-  const backgrounds: Record<string, string> = {
-    'Valorant': 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1920&h=1080&fit=crop',
-    'Elden Ring': 'https://images.unsplash.com/photo-1621259182978-fbf93132d53d?w=1920&h=1080&fit=crop',
-  }
-  return backgrounds[title] || 'https://images.unsplash.com/photo-1612287230202-1ff1d85d1bdf?w=1920&h=1080&fit=crop'
-}
-
 // Font Awesome icon mapping for games
 const getGameIcon = (title: string): string => {
   const icons: Record<string, string> = {
@@ -254,13 +246,8 @@ onMounted(() => {
 <template>
   <div class="app-container" :class="{ dark: isDarkMode, light: !isDarkMode }">
     <!-- ========== FULL SCREEN BACKGROUND ========== -->
-    <div 
-      class="app-background" 
-      :style="{
-        backgroundImage: `url(${getGameBackground(selectedGame?.title || 'Valorant')})`
-      }"
-    >
-      <div class="app-background-overlay"></div>
+    <div class="app-background">
+      <div class="app-background-glow"></div>
     </div>
 
     <!-- ========== MAIN LAYOUT ========== -->
@@ -600,50 +587,52 @@ onMounted(() => {
 <style scoped>
 /* ========== CSS VARIABLES ========== */
 .app-container {
-  --bg-primary: #0a0e17;
-  --bg-secondary: #111b26;
-  --bg-card: rgba(10, 14, 23, 0.65);
-  --bg-card-hover: rgba(10, 14, 23, 0.55);
-  --bg-glass: rgba(0, 0, 0, 0.35);
-  --bg-menu: rgba(17, 27, 38, 0.95);
-  --bg-modal: rgba(17, 27, 38, 0.95);
-  --bg-sidebar: rgba(10, 14, 23, 0.85);
-  --bg-panel: rgba(10, 14, 23, 0.7);
-  
+  --bg-primary: #0b0f1a;
+  --bg-secondary: #121a2b;
+  --bg-card: rgba(255, 255, 255, 0.06);
+  --bg-card-hover: rgba(255, 255, 255, 0.1);
+  --bg-glass: rgba(255, 255, 255, 0.05);
+  --bg-menu: rgba(18, 26, 43, 0.85);
+  --bg-modal: rgba(18, 26, 43, 0.9);
+  --bg-sidebar: rgba(255, 255, 255, 0.04);
+  --bg-panel: rgba(255, 255, 255, 0.04);
+
   --text-primary: #ffffff;
   --text-secondary: #c8d0d8;
   --text-muted: rgba(200, 208, 216, 0.6);
   --text-dim: rgba(200, 208, 216, 0.3);
-  
-  --border-color: rgba(255, 255, 255, 0.06);
-  --border-light: rgba(255, 255, 255, 0.08);
-  
-  --shadow-color: rgba(108, 140, 255, 0.15);
-  
+
+  --border-color: rgba(255, 255, 255, 0.08);
+  --border-light: rgba(255, 255, 255, 0.12);
+
+  --shadow-color: rgba(108, 140, 255, 0.2);
+
   --gradient-start: #6c8cff;
   --gradient-end: #a855f7;
-  
+
+  --glass-blur: 20px;
+
   min-height: 100vh;
   font-family: 'Segoe UI', -apple-system, sans-serif;
 }
 
 /* ========== LIGHT THEME ========== */
 .app-container.light {
-  --bg-primary: #f0f2f5;
+  --bg-primary: #e8ecf4;
   --bg-secondary: #ffffff;
-  --bg-card: rgba(255, 255, 255, 0.7);
-  --bg-card-hover: rgba(255, 255, 255, 0.8);
-  --bg-glass: rgba(255, 255, 255, 0.5);
-  --bg-menu: rgba(255, 255, 255, 0.95);
-  --bg-modal: rgba(255, 255, 255, 0.95);
-  --bg-sidebar: rgba(255, 255, 255, 0.85);
-  --bg-panel: rgba(255, 255, 255, 0.7);
-  
+  --bg-card: rgba(255, 255, 255, 0.55);
+  --bg-card-hover: rgba(255, 255, 255, 0.7);
+  --bg-glass: rgba(255, 255, 255, 0.45);
+  --bg-menu: rgba(255, 255, 255, 0.9);
+  --bg-modal: rgba(255, 255, 255, 0.92);
+  --bg-sidebar: rgba(255, 255, 255, 0.4);
+  --bg-panel: rgba(255, 255, 255, 0.4);
+
   --text-primary: #1a1a2e;
   --text-secondary: #2d2d44;
   --text-muted: rgba(45, 45, 68, 0.6);
   --text-dim: rgba(45, 45, 68, 0.3);
-  
+
   --border-color: rgba(0, 0, 0, 0.06);
   --border-light: rgba(0, 0, 0, 0.08);
 }
@@ -655,24 +644,29 @@ onMounted(() => {
   left: 0;
   right: 0;
   bottom: 0;
-  background-size: cover;
-  background-position: center;
   z-index: 0;
-  transition: background-image 0.8s ease;
+  background:
+    radial-gradient(ellipse 80% 60% at 15% -10%, rgba(108, 140, 255, 0.35), transparent 60%),
+    radial-gradient(ellipse 70% 55% at 110% 15%, rgba(168, 85, 247, 0.28), transparent 60%),
+    radial-gradient(ellipse 90% 70% at 50% 120%, rgba(108, 140, 255, 0.18), transparent 65%),
+    linear-gradient(160deg, #0b0f1a 0%, #101a2c 45%, #0d1322 100%);
 }
 
-.app-background-overlay {
+.app-container.light .app-background {
+  background:
+    radial-gradient(ellipse 80% 60% at 15% -10%, rgba(108, 140, 255, 0.25), transparent 60%),
+    radial-gradient(ellipse 70% 55% at 110% 15%, rgba(168, 85, 247, 0.2), transparent 60%),
+    linear-gradient(160deg, #e8ecf4 0%, #f4f6fb 100%);
+}
+
+.app-background-glow {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(10, 14, 23, 0.75);
-  backdrop-filter: blur(2px);
-}
-
-.app-container.light .app-background-overlay {
-  background: rgba(240, 242, 245, 0.8);
+  top: -20%;
+  left: 30%;
+  width: 40%;
+  height: 40%;
+  background: radial-gradient(circle, rgba(108, 140, 255, 0.14), transparent 70%);
+  filter: blur(40px);
 }
 
 /* ========== LAYOUT ========== */
@@ -688,8 +682,9 @@ onMounted(() => {
 .sidebar {
   width: 64px;
   background: var(--bg-sidebar);
-  backdrop-filter: blur(20px);
-  border-right: 1px solid var(--border-color);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border-right: 1px solid var(--border-light);
   padding: 20px 8px;
   display: flex;
   flex-direction: column;
@@ -729,17 +724,20 @@ onMounted(() => {
   cursor: pointer;
   transition: all 0.2s;
   color: var(--text-muted);
+  border: 1px solid transparent;
 }
 
 .nav-item:hover {
   background: var(--bg-glass);
   color: var(--text-primary);
+  box-shadow: 0 4px 16px rgba(108, 140, 255, 0.12);
 }
 
 .nav-item.active {
-  background: var(--bg-glass);
+  background: linear-gradient(135deg, rgba(108, 140, 255, 0.25), rgba(168, 85, 247, 0.25));
   color: var(--text-primary);
-  border: 1px solid var(--border-light);
+  border: 1px solid rgba(108, 140, 255, 0.35);
+  box-shadow: 0 0 20px rgba(108, 140, 255, 0.18);
 }
 
 .nav-icon {
@@ -967,41 +965,48 @@ onMounted(() => {
 /* ========== GAME GRID ========== */
 .game-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 20px;
 }
 
 /* ========== GAME CARD ========== */
 .game-card {
-  border-radius: 14px;
+  border-radius: 18px;
   overflow: hidden;
   background-size: cover;
   background-position: center;
   cursor: pointer;
   transition: all 0.3s ease;
-  min-height: 220px;
+  min-height: 300px;
 }
 
 .game-card:hover {
-  transform: translateY(-6px) scale(1.02);
-  box-shadow: 0 20px 50px var(--shadow-color);
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 24px 60px var(--shadow-color);
 }
 
 .game-card-glass {
   background: var(--bg-card);
-  backdrop-filter: blur(14px);
-  padding: 16px;
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  padding: 18px;
   border: 1px solid var(--border-light);
-  border-radius: 14px;
-  min-height: 220px;
+  border-radius: 18px;
+  min-height: 300px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  transition: background 0.3s ease;
+  transition: background 0.3s ease, box-shadow 0.3s ease;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 8px 32px rgba(0, 0, 0, 0.35);
 }
 
 .game-card:hover .game-card-glass {
   background: var(--bg-card-hover);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 12px 40px rgba(0, 0, 0, 0.45);
 }
 
 .game-card-content {
@@ -1019,46 +1024,48 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
 .game-icon {
-  font-size: 24px;
+  font-size: 32px;
   color: var(--gradient-start);
+  filter: drop-shadow(0 0 12px rgba(108, 140, 255, 0.4));
 }
 
 .game-status {
   font-size: 11px;
   color: #4ade80;
   background: rgba(74, 222, 128, 0.15);
-  padding: 2px 10px;
+  padding: 3px 12px;
   border-radius: 12px;
   font-weight: 500;
+  border: 1px solid rgba(74, 222, 128, 0.25);
 }
 
 .game-title {
-  margin: 4px 0 4px 0;
-  font-size: 15px;
-  font-weight: 600;
+  margin: 6px 0 6px 0;
+  font-size: 19px;
+  font-weight: 700;
   color: var(--text-primary);
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
 }
 
 .game-meta {
   display: flex;
-  gap: 12px;
-  font-size: 12px;
-  color: var(--text-muted);
+  gap: 16px;
+  font-size: 13px;
+  color: var(--text-secondary);
 }
 
 .game-card-bottom {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-top: 8px;
+  padding-top: 10px;
   border-top: 1px solid var(--border-color);
-  margin-top: 8px;
-  font-size: 11px;
+  margin-top: 10px;
+  font-size: 12px;
   color: var(--text-muted);
 }
 
@@ -1084,12 +1091,14 @@ onMounted(() => {
 
 .add-game-glass {
   background: var(--bg-glass);
-  backdrop-filter: blur(8px);
-  min-height: 220px;
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  min-height: 300px;
   display: flex;
   align-items: center;
   justify-content: center;
   border: none;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 .add-game-content {
@@ -1097,17 +1106,18 @@ onMounted(() => {
 }
 
 .add-icon {
-  font-size: 32px;
+  font-size: 40px;
   color: var(--gradient-start);
   display: block;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
+  filter: drop-shadow(0 0 14px rgba(108, 140, 255, 0.4));
 }
 
 .add-title {
   margin: 0;
-  color: var(--text-dim);
-  font-size: 16px;
-  font-weight: 400;
+  color: var(--text-secondary);
+  font-size: 17px;
+  font-weight: 600;
 }
 
 .add-sub {
@@ -1141,8 +1151,9 @@ onMounted(() => {
 .right-panel {
   width: 240px;
   background: var(--bg-panel);
-  backdrop-filter: blur(20px);
-  border-left: 1px solid var(--border-color);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border-left: 1px solid var(--border-light);
   padding: 24px 18px;
   flex-shrink: 0;
   overflow-y: auto;
@@ -1164,11 +1175,13 @@ onMounted(() => {
 
 .total-hours {
   background: var(--bg-glass);
+  backdrop-filter: blur(10px);
   border-radius: 12px;
   padding: 16px;
   text-align: center;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-light);
   margin-bottom: 12px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
 .total-hours-value {
@@ -1212,15 +1225,18 @@ onMounted(() => {
 
 .panel-game-card {
   background: var(--bg-glass);
-  border-radius: 10px;
-  padding: 10px 12px;
-  border: 1px solid var(--border-color);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--border-light);
   margin-bottom: 8px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
 .panel-game-card.highlight {
-  border-color: var(--gradient-start);
-  background: rgba(108, 140, 255, 0.05);
+  border-color: rgba(108, 140, 255, 0.45);
+  background: rgba(108, 140, 255, 0.1);
+  box-shadow: 0 0 24px rgba(108, 140, 255, 0.15);
 }
 
 .panel-game-info {
@@ -1283,14 +1299,18 @@ onMounted(() => {
 
 .detail-panel {
   background: var(--bg-modal);
-  backdrop-filter: blur(20px);
-  border-radius: 20px;
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border-radius: 22px;
   padding: 32px;
-  max-width: 700px;
+  max-width: 720px;
   width: 90%;
   max-height: 80vh;
   overflow-y: auto;
   border: 1px solid var(--border-light);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 24px 80px rgba(0, 0, 0, 0.5);
   animation: scaleIn 0.3s ease;
 }
 
@@ -1479,9 +1499,11 @@ onMounted(() => {
   width: 300px;
   height: 100vh;
   background: var(--bg-menu);
-  backdrop-filter: blur(20px);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
   padding: 24px;
   border-left: 1px solid var(--border-light);
+  box-shadow: -12px 0 40px rgba(0, 0, 0, 0.3);
   z-index: 1001;
   animation: slideIn 0.3s ease;
 }
@@ -1603,11 +1625,15 @@ onMounted(() => {
 
 .modal-content {
   background: var(--bg-modal);
-  backdrop-filter: blur(20px);
-  border-radius: 16px;
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border-radius: 18px;
   width: 440px;
   max-width: 90%;
   border: 1px solid var(--border-light);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 24px 70px rgba(0, 0, 0, 0.5);
   animation: scaleIn 0.2s ease;
 }
 

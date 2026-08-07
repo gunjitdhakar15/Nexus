@@ -79,11 +79,15 @@ const handleAdded = (alt: any) => {
 
 .modal-content {
   background: var(--bg-modal);
-  backdrop-filter: blur(20px);
-  border-radius: 16px;
+  backdrop-filter: blur(var(--glass-blur, 20px));
+  -webkit-backdrop-filter: blur(var(--glass-blur, 20px));
+  border-radius: 18px;
   width: 480px;
   max-width: 90%;
   border: 1px solid var(--border-light);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 24px 70px rgba(0, 0, 0, 0.5);
   animation: scaleIn 0.2s ease;
 }
 

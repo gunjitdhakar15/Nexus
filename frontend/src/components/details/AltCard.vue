@@ -211,10 +211,14 @@ const formatDate = (dateStr: string) => {
 <style scoped>
 .alt-card-glass {
   background: var(--bg-glass);
-  backdrop-filter: blur(14px);
-  padding: 14px 16px;
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
+  backdrop-filter: blur(var(--glass-blur, 20px));
+  -webkit-backdrop-filter: blur(var(--glass-blur, 20px));
+  padding: 16px 18px;
+  border: 1px solid var(--border-light);
+  border-radius: 14px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 8px 28px rgba(0, 0, 0, 0.3);
 }
 
 .alt-view {
