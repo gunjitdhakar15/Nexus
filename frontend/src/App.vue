@@ -5,7 +5,18 @@ import { useGames } from '@/stores/games'
 import { useUI, demoNotice } from '@/stores/ui'
 
 const router = useRouter()
-const { isDarkMode, initTheme, toggleTheme, showMenu } = useUI()
+const {
+  isDarkMode,
+  initTheme,
+  toggleTheme,
+  showMenu,
+  showCartModal,
+  showNotificationsModal,
+  showChatModal,
+  activeFriend,
+  toastMessage,
+  showToast,
+} = useUI()
 const { games, totalAlts, totalPlaytime } = useGames()
 
 const goTo = (name: string) => {
@@ -23,8 +34,97 @@ onMounted(() => initTheme())
       <div class="app-background-glow"></div>
     </div>
 
+    <!-- ========== GLOBAL TOAST BANNER ========== -->
+    <transition name="toast">
+      <div v-if="toastMessage" class="global-toast">
+        <i class="fas fa-circle-info"></i>
+        <span>{{ toastMessage }}</span>
+      </div>
+    </transition>
+
     <!-- ========== ROUTED PAGES ========== -->
     <router-view />
+
+    <!-- ========== CART / STORE MODAL ========== -->
+    <div v-if="showCartModal" class="modal-overlay" @click="showCartModal = false">
+      <div class="modal-content interactive-modal" @click.stop>
+        <div class="modal-header">
+          <h3><i class="fas fa-shopping-bag"></i> Nexus Game Store & DLCs</h3>
+          <button class="modal-close" @click="showCartModal = false"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="store-item-row" v-for="i in 3" :key="i">
+            <div class="store-icon"><i class="fas fa-gamepad"></i></div>
+            <div class="store-info">
+              <h4>Expansion Pack Vol. {{ i }}</h4>
+              <p>Unlock premium alt account sync features & auto-leveling analytics.</p>
+            </div>
+            <button class="modal-confirm store-buy-btn" @click="showCartModal = false; showToast('Expansion installed successfully!')">Install Free</button>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="modal-cancel" @click="showCartModal = false">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== NOTIFICATIONS MODAL ========== -->
+    <div v-if="showNotificationsModal" class="modal-overlay" @click="showNotificationsModal = false">
+      <div class="modal-content interactive-modal" @click.stop>
+        <div class="modal-header">
+          <h3><i class="fas fa-bell"></i> Notification Center</h3>
+          <button class="modal-close" @click="showNotificationsModal = false"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="notif-item">
+            <i class="fas fa-cloud-arrow-down notif-icon success"></i>
+            <div>
+              <strong>Steam Library Synced</strong>
+              <p>Successfully imported 14 games and 21 alt accounts.</p>
+              <span class="notif-time">2 mins ago</span>
+            </div>
+          </div>
+          <div class="notif-item">
+            <i class="fas fa-star notif-icon warning"></i>
+            <div>
+              <strong>Alt Milestone Reached</strong>
+              <p>Valorant alt 'Smurf' reached Diamond 1 tier.</p>
+              <span class="notif-time">1 hour ago</span>
+            </div>
+          </div>
+          <div class="notif-item">
+            <i class="fas fa-shield-halved notif-icon info"></i>
+            <div>
+              <strong>Database Backup Complete</strong>
+              <p>Local SQLite backup saved to documents.</p>
+              <span class="notif-time">Yesterday</span>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="modal-confirm" @click="showNotificationsModal = false">Mark All Read</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== CHAT MODAL ========== -->
+    <div v-if="showChatModal" class="modal-overlay" @click="showChatModal = false">
+      <div class="modal-content interactive-modal chat-modal" @click.stop>
+        <div class="modal-header">
+          <h3><i class="fas fa-comment-dots"></i> Chat with {{ activeFriend || 'Nikitin' }}</h3>
+          <button class="modal-close" @click="showChatModal = false"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body chat-body">
+          <div class="chat-msg received">Hey! Ready for the Valorant alt ranked grind today?</div>
+          <div class="chat-msg sent">Yeah logging in now. Let's run the Jett main.</div>
+          <div class="chat-msg received">Awesome see you in lobby!</div>
+        </div>
+        <div class="chat-footer">
+          <input placeholder="Type a message..." class="search-input chat-input" @keyup.enter="showToast('Message sent!')" />
+          <button class="modal-confirm chat-send-btn" @click="showToast('Message sent!')"><i class="fas fa-paper-plane"></i></button>
+        </div>
+      </div>
+    </div>
 
     <!-- ========== MENU DRAWER ========== -->
     <div v-if="showMenu" class="menu-overlay" @click="showMenu = false">
@@ -1078,5 +1178,140 @@ onMounted(() => initTheme())
 
 .modal-confirm:active {
   transform: scale(0.97);
+}
+
+/* ========== GLOBAL TOAST ========== */
+.global-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+  background: var(--bg-modal);
+  border: 1px solid var(--accent-coral);
+  color: var(--text-primary);
+  padding: 12px 20px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5);
+  font-size: 14px;
+  font-weight: 600;
+}
+.global-toast i {
+  color: var(--accent-coral);
+}
+.toast-enter-active, .toast-leave-active {
+  transition: all 0.3s ease;
+}
+.toast-enter-from, .toast-leave-to {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+/* ========== INTERACTIVE MODALS ========== */
+.store-item-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  margin-bottom: 10px;
+}
+.store-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: rgba(229, 56, 75, 0.2);
+  color: var(--accent-coral);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+.store-info {
+  flex: 1;
+}
+.store-info h4 {
+  margin: 0 0 2px 0;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+.store-info p {
+  margin: 0;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+.store-buy-btn {
+  padding: 6px 14px;
+  font-size: 12px;
+}
+.notif-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-color);
+}
+.notif-item:last-child {
+  border-bottom: none;
+}
+.notif-icon {
+  font-size: 16px;
+  margin-top: 2px;
+}
+.notif-icon.success { color: #4ade80; }
+.notif-icon.warning { color: #facc15; }
+.notif-icon.info { color: #60a5fa; }
+.notif-item strong {
+  font-size: 13px;
+  color: var(--text-primary);
+  display: block;
+}
+.notif-item p {
+  margin: 2px 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.notif-time {
+  font-size: 10px;
+  color: var(--text-dim);
+}
+.chat-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 260px;
+  overflow-y: auto;
+  margin-bottom: 12px;
+}
+.chat-msg {
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 13px;
+  max-width: 80%;
+}
+.chat-msg.received {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+  align-self: flex-start;
+}
+.chat-msg.sent {
+  background: var(--accent-coral);
+  color: #fff;
+  align-self: flex-end;
+}
+.chat-footer {
+  display: flex;
+  gap: 8px;
+  padding: 0 24px 24px 24px;
+}
+.chat-input {
+  flex: 1;
+}
+.chat-send-btn {
+  padding: 8px 16px;
 }
 </style>

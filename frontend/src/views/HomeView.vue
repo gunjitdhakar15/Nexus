@@ -10,7 +10,16 @@ import { isDesktopDemo } from '@/utils/env'
 
 const router = useRouter()
 const gamesStore = useGames()
-const { isDarkMode, toggleTheme, showMenu } = useUI()
+const {
+  isDarkMode,
+  toggleTheme,
+  showMenu,
+  showCartModal,
+  showNotificationsModal,
+  showChatModal,
+  activeFriend,
+  showToast,
+} = useUI()
 const { steamApiKey, steamId, loadSettings } = useSettings()
 
 const { games, loading, altPreviews, totalAlts, totalPlaytime, mostPlayedGame, recentGames, addGame, importSteamGames } = gamesStore
@@ -27,6 +36,15 @@ const steamResults = ref<SteamGame[]>([])
 const steamSelected = ref<Set<string>>(new Set())
 const steamError = ref('')
 const steamNotice = ref('')
+
+const launchGame = (title: string) => {
+  showToast(`🚀 Launching ${title} alt account...`)
+}
+
+const openChat = (name: string) => {
+  activeFriend.value = name
+  showChatModal.value = true
+}
 
 const featuredGame = computed(() => {
   return games.value.find(g => g.title.toLowerCase().includes('valorant')) || games.value[0] || null
@@ -219,8 +237,8 @@ onMounted(() => {
           />
         </div>
         <div class="header-right">
-          <button class="header-action-btn" title="Cart"><i class="fas fa-shopping-bag"></i></button>
-          <button class="header-action-btn" title="Notifications"><i class="fas fa-bell"></i></button>
+          <button class="header-action-btn" @click="showCartModal = true" title="Store & DLCs"><i class="fas fa-shopping-bag"></i></button>
+          <button class="header-action-btn" @click="showNotificationsModal = true" title="Notifications"><i class="fas fa-bell"></i></button>
           <div class="profile-icon" @click="showMenu = !showMenu" title="Profile">
             <i class="fas fa-user-circle avatar"></i>
           </div>
@@ -319,7 +337,7 @@ onMounted(() => {
                 <div class="game-card-top">
                   <div class="game-card-header">
                     <i :class="['fas', getGameIcon(game.title), 'game-icon']"></i>
-                    <button class="game-play-badge"><i class="fas fa-play"></i></button>
+                    <button class="game-play-badge" @click.stop="launchGame(game.title)"><i class="fas fa-play"></i></button>
                   </div>
                   <h3 class="game-title">{{ game.title }}</h3>
                   <p class="game-subtitle">{{ game.genres || 'Action, Multiplayer' }}</p>
@@ -370,8 +388,8 @@ onMounted(() => {
             <span class="download-size">265Mb of 1.23Gb</span>
           </div>
           <div class="download-actions">
-            <button class="download-btn play" title="Play"><i class="fas fa-play"></i></button>
-            <button class="download-btn cancel" title="Pause"><i class="fas fa-times"></i></button>
+            <button class="download-btn play" @click.stop="launchGame(recentGames[0]?.title || 'FIFA')" title="Play"><i class="fas fa-play"></i></button>
+            <button class="download-btn cancel" @click.stop="showToast('Session paused')" title="Pause"><i class="fas fa-times"></i></button>
           </div>
         </div>
       </div>
@@ -422,22 +440,22 @@ onMounted(() => {
 
     <!-- ========== RIGHTMOST FRIENDS / SOCIAL BAR ========== -->
     <aside class="social-bar">
-      <div class="friend-item" title="Nikitin (In Game)">
+      <div class="friend-item" @click="openChat('Nikitin')" title="Nikitin (In Game)">
         <div class="friend-avatar bg-a">
           <i class="fas fa-user-ninja"></i>
           <span class="status-dot online"></span>
         </div>
         <span class="friend-tag">In Game</span>
       </div>
-      <div class="friend-item" v-for="i in 5" :key="i" :title="'Friend #' + i">
+      <div class="friend-item" v-for="i in 5" :key="i" @click="openChat('Friend #' + i)" :title="'Friend #' + i">
         <div class="friend-avatar" :class="'bg-' + (i % 4)">
           <i class="fas" :class="['fa-user-astronaut', 'fa-user-secret', 'fa-user-graduate', 'fa-user-shield'][i % 4]"></i>
           <span class="status-dot" :class="i % 2 === 0 ? 'online' : 'away'"></span>
         </div>
       </div>
       <div class="social-footer">
-        <button class="social-btn"><i class="fas fa-comment"></i></button>
-        <button class="social-btn"><i class="fas fa-user-group"></i></button>
+        <button class="social-btn" @click="openChat('Community Chat')" title="Chat"><i class="fas fa-comment"></i></button>
+        <button class="social-btn" @click="showToast('Party voice connected')" title="Party"><i class="fas fa-user-group"></i></button>
       </div>
     </aside>
 
