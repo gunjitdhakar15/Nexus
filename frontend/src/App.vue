@@ -68,30 +68,35 @@ onMounted(() => initTheme())
 <style>
 /* ========== CSS VARIABLES ========== */
 .app-container {
-  --bg-primary: #0b0f1a;
-  --bg-secondary: #121a2b;
-  --bg-card: rgba(255, 255, 255, 0.06);
-  --bg-card-hover: rgba(255, 255, 255, 0.1);
-  --bg-glass: rgba(255, 255, 255, 0.05);
-  --bg-menu: rgba(18, 26, 43, 0.85);
-  --bg-modal: rgba(18, 26, 43, 0.9);
-  --bg-sidebar: rgba(255, 255, 255, 0.04);
-  --bg-panel: rgba(255, 255, 255, 0.04);
+  --bg-primary: #230e15;
+  --bg-secondary: #331520;
+  --bg-app: #2d121b;
+  --bg-card: rgba(255, 255, 255, 0.07);
+  --bg-card-hover: rgba(255, 255, 255, 0.12);
+  --bg-glass: rgba(255, 255, 255, 0.06);
+  --bg-menu: rgba(45, 18, 27, 0.95);
+  --bg-modal: rgba(48, 19, 28, 0.96);
+  --bg-sidebar: rgba(0, 0, 0, 0.25);
+  --bg-panel: rgba(0, 0, 0, 0.2);
 
   --text-primary: #ffffff;
-  --text-secondary: #c8d0d8;
-  --text-muted: rgba(200, 208, 216, 0.6);
-  --text-dim: rgba(200, 208, 216, 0.3);
+  --text-secondary: #ebd5dc;
+  --text-muted: #ba8d9a;
+  --text-dim: rgba(235, 213, 220, 0.35);
+
+  --accent-coral: #ff4757;
+  --accent-cream: #fde8d7;
+  --accent-cream-text: #2d121b;
 
   --border-color: rgba(255, 255, 255, 0.08);
-  --border-light: rgba(255, 255, 255, 0.12);
+  --border-light: rgba(255, 255, 255, 0.14);
 
-  --shadow-color: rgba(108, 140, 255, 0.2);
+  --shadow-color: rgba(229, 56, 75, 0.25);
 
-  --gradient-start: #6c8cff;
-  --gradient-end: #a855f7;
+  --gradient-start: #e5384b;
+  --gradient-end: #ff6b81;
 
-  --glass-blur: 20px;
+  --glass-blur: 24px;
 
   min-height: 100vh;
   font-family: 'Segoe UI', -apple-system, sans-serif;
@@ -99,23 +104,24 @@ onMounted(() => initTheme())
 
 /* ========== LIGHT THEME ========== */
 .app-container.light {
-  --bg-primary: #e8ecf4;
+  --bg-primary: #f8e6ec;
   --bg-secondary: #ffffff;
-  --bg-card: rgba(255, 255, 255, 0.55);
-  --bg-card-hover: rgba(255, 255, 255, 0.7);
-  --bg-glass: rgba(255, 255, 255, 0.45);
-  --bg-menu: rgba(255, 255, 255, 0.9);
-  --bg-modal: rgba(255, 255, 255, 0.92);
-  --bg-sidebar: rgba(255, 255, 255, 0.4);
-  --bg-panel: rgba(255, 255, 255, 0.4);
+  --bg-app: #ffffff;
+  --bg-card: rgba(229, 56, 75, 0.05);
+  --bg-card-hover: rgba(229, 56, 75, 0.1);
+  --bg-glass: rgba(255, 255, 255, 0.85);
+  --bg-menu: rgba(255, 255, 255, 0.95);
+  --bg-modal: rgba(255, 255, 255, 0.96);
+  --bg-sidebar: rgba(229, 56, 75, 0.03);
+  --bg-panel: rgba(229, 56, 75, 0.03);
 
-  --text-primary: #1a1a2e;
-  --text-secondary: #2d2d44;
-  --text-muted: rgba(45, 45, 68, 0.6);
-  --text-dim: rgba(45, 45, 68, 0.3);
+  --text-primary: #2d121b;
+  --text-secondary: #5a2835;
+  --text-muted: #8c4c5b;
+  --text-dim: rgba(90, 40, 53, 0.4);
 
-  --border-color: rgba(0, 0, 0, 0.06);
-  --border-light: rgba(0, 0, 0, 0.08);
+  --border-color: rgba(229, 56, 75, 0.1);
+  --border-light: rgba(229, 56, 75, 0.15);
 }
 
 /* ========== BACKGROUND ========== */
@@ -126,18 +132,11 @@ onMounted(() => initTheme())
   right: 0;
   bottom: 0;
   z-index: 0;
-  background:
-    radial-gradient(ellipse 80% 60% at 15% -10%, rgba(108, 140, 255, 0.35), transparent 60%),
-    radial-gradient(ellipse 70% 55% at 110% 15%, rgba(168, 85, 247, 0.28), transparent 60%),
-    radial-gradient(ellipse 90% 70% at 50% 120%, rgba(108, 140, 255, 0.18), transparent 65%),
-    linear-gradient(160deg, #0b0f1a 0%, #101a2c 45%, #0d1322 100%);
+  background: radial-gradient(circle at 50% 30%, #3d1723 0%, #230e15 100%);
 }
 
 .app-container.light .app-background {
-  background:
-    radial-gradient(ellipse 80% 60% at 15% -10%, rgba(108, 140, 255, 0.25), transparent 60%),
-    radial-gradient(ellipse 70% 55% at 110% 15%, rgba(168, 85, 247, 0.2), transparent 60%),
-    linear-gradient(160deg, #e8ecf4 0%, #f4f6fb 100%);
+  background: radial-gradient(circle at 50% 30%, #fbe8ee 0%, #f2d2dc 100%);
 }
 
 .app-background-glow {
@@ -406,32 +405,37 @@ onMounted(() => initTheme())
 /* ========== CATEGORY TABS ========== */
 .category-tabs {
   display: flex;
-  gap: 8px;
-  margin-bottom: 24px;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
   flex-wrap: wrap;
 }
 
 .category-tab {
-  padding: 6px 16px;
-  border-radius: 20px;
-  background: var(--bg-glass);
-  border: 1px solid var(--border-light);
-  color: var(--text-muted);
+  padding: 8px 18px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .category-tab:hover {
-  border-color: var(--gradient-start);
+  border-color: rgba(255, 255, 255, 0.2);
   color: var(--text-primary);
 }
 
 .category-tab.active {
-  background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
-  border-color: transparent;
-  color: #fff;
+  background: var(--accent-cream);
+  border-color: var(--accent-cream);
+  color: var(--accent-cream-text);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
 }
 
 .category-tab.see-more {
@@ -439,8 +443,9 @@ onMounted(() => initTheme())
 }
 
 .category-tab.see-more:hover {
-  border-color: var(--gradient-start);
-  background: rgba(108, 140, 255, 0.05);
+  border-color: var(--accent-coral);
+  background: rgba(229, 56, 75, 0.1);
+  color: var(--text-primary);
 }
 
 /* ========== GAME GRID ========== */
@@ -452,27 +457,27 @@ onMounted(() => initTheme())
 
 /* ========== GAME CARD ========== */
 .game-card {
-  border-radius: 18px;
+  border-radius: 28px;
   overflow: hidden;
   background: var(--bg-card);
   cursor: pointer;
-  transition: all 0.3s ease;
-  min-height: 300px;
+  transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  min-height: 280px;
 }
 
 .game-card:hover {
-  transform: translateY(-8px) scale(1.02);
-  box-shadow: 0 24px 60px var(--shadow-color);
+  transform: translateY(-6px) scale(1.015);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
 }
 
 .game-card-glass {
   background: var(--bg-card);
   backdrop-filter: blur(var(--glass-blur));
   -webkit-backdrop-filter: blur(var(--glass-blur));
-  padding: 18px;
+  padding: 20px;
   border: 1px solid var(--border-light);
-  border-radius: 18px;
-  min-height: 300px;
+  border-radius: 28px;
+  min-height: 280px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;

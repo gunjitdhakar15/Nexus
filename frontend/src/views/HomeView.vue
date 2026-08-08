@@ -28,6 +28,10 @@ const steamSelected = ref<Set<string>>(new Set())
 const steamError = ref('')
 const steamNotice = ref('')
 
+const featuredGame = computed(() => {
+  return games.value.find(g => g.title.toLowerCase().includes('valorant')) || games.value[0] || null
+})
+
 const filteredGames = computed(() => {
   let result = games.value
   if (searchQuery.value) {
@@ -133,7 +137,7 @@ onMounted(() => {
     <!-- ========== LEFT SIDEBAR ========== -->
     <aside class="sidebar">
       <div class="sidebar-brand">
-        <span class="brand-icon"><i class="fas fa-rocket"></i></span>
+        <span class="brand-icon"><i class="fas fa-shield-halved"></i></span>
       </div>
 
       <nav class="sidebar-nav">
@@ -141,51 +145,51 @@ onMounted(() => {
           class="nav-item"
           :class="{ active: selectedCategory === 'Popular' }"
           @click="selectedCategory = 'Popular'"
-          title="Popular"
+          title="Home / Popular"
         >
-          <i class="fas fa-fire nav-icon"></i>
+          <i class="fas fa-house nav-icon"></i>
         </div>
         <div
           class="nav-item"
           :class="{ active: selectedCategory === 'New Games' }"
           @click="selectedCategory = 'New Games'"
-          title="New Games"
+          title="Games"
         >
-          <i class="fas fa-star nav-icon"></i>
+          <i class="fas fa-gamepad nav-icon"></i>
         </div>
         <div
           class="nav-item"
-          :class="{ active: selectedCategory === 'Most Played' }"
-          @click="selectedCategory = 'Most Played'"
-          title="Most Played"
+          @click="openSteamModal"
+          title="Steam Import"
         >
-          <i class="fas fa-trophy nav-icon"></i>
+          <i class="fab fa-steam nav-icon"></i>
         </div>
         <div
           class="nav-item"
-          :class="{ active: selectedCategory === 'Recent' }"
-          @click="selectedCategory = 'Recent'"
-          title="Recent"
+          @click="showAddGameModal = true"
+          title="Add Game"
         >
-          <i class="fas fa-clock nav-icon"></i>
-        </div>
-        <div class="nav-item" @click="showAddGameModal = true" title="Add Game">
           <i class="fas fa-plus nav-icon"></i>
+        </div>
+        <div
+          class="nav-item"
+          @click="toggleTheme"
+          :title="isDarkMode ? 'Light Mode' : 'Dark Mode'"
+        >
+          <i :class="isDarkMode ? 'fas fa-moon' : 'fas fa-sun'" class="nav-icon"></i>
+        </div>
+        <div
+          class="nav-item"
+          @click="router.push({ name: 'settings' })"
+          title="Settings"
+        >
+          <i class="fas fa-gear nav-icon"></i>
         </div>
       </nav>
 
       <div class="sidebar-footer">
-        <div class="sidebar-stat" title="Games">
-          <span class="stat-number">{{ games.length }}</span>
-          <i class="fas fa-gamepad stat-icon"></i>
-        </div>
-        <div class="sidebar-stat" title="Alts">
-          <span class="stat-number">{{ totalAlts }}</span>
-          <i class="fas fa-users stat-icon"></i>
-        </div>
-        <div class="sidebar-stat" title="Playtime">
-          <span class="stat-number">{{ totalPlaytime }}h</span>
-          <i class="fas fa-hourglass-half stat-icon"></i>
+        <div class="add-box-btn" @click="showAddGameModal = true" title="Add New Game">
+          <i class="fas fa-plus"></i>
         </div>
       </div>
     </aside>
@@ -195,53 +199,104 @@ onMounted(() => {
       <!-- DEMO BANNER -->
       <div class="demo-banner">
         <i class="fas fa-flask"></i>
-        Demo preview — sample data, changes reset on reload.
-        <a href="https://github.com/gunjitdhakar15/Nexus/releases/latest" target="_blank" rel="noopener">Get the desktop app</a>
+        Nexus Launcher — Manage all your game alts, playtime & accounts in one place.
+        <a href="https://github.com/gunjitdhakar15/Nexus/releases/latest" target="_blank" rel="noopener">Get Desktop App</a>
       </div>
 
       <!-- HEADER -->
       <header class="main-header">
         <div class="header-left">
           <div class="greeting">
-            <span class="greeting-text">Good evening,</span>
-            <span class="greeting-name">Gunjit</span>
-          </div>
-          <div class="search-bar">
-            <i class="fas fa-search search-icon"></i>
-            <input
-              v-model="searchQuery"
-              placeholder="Search games..."
-              class="search-input"
-            />
+            <span class="greeting-name">Good evening, Gunjit</span>
           </div>
         </div>
+        <div class="search-bar">
+          <i class="fas fa-search search-icon"></i>
+          <input
+            v-model="searchQuery"
+            placeholder="Search games..."
+            class="search-input"
+          />
+        </div>
         <div class="header-right">
-          <button class="theme-toggle" @click="toggleTheme" :title="isDarkMode ? 'Switch to Light' : 'Switch to Dark'">
-            <i :class="isDarkMode ? 'fas fa-moon' : 'fas fa-sun'"></i>
-          </button>
+          <button class="header-action-btn" title="Cart"><i class="fas fa-shopping-bag"></i></button>
+          <button class="header-action-btn" title="Notifications"><i class="fas fa-bell"></i></button>
           <div class="profile-icon" @click="showMenu = !showMenu" title="Profile">
             <i class="fas fa-user-circle avatar"></i>
           </div>
         </div>
       </header>
 
-      <!-- ========== CATEGORY TABS ========== -->
-      <div class="category-tabs">
-        <span
-          v-for="cat in ['Popular', 'New Games', 'Most Played', 'Recent']"
-          :key="cat"
-          class="category-tab"
-          :class="{ active: selectedCategory === cat }"
-          @click="selectedCategory = cat"
-        >
-          {{ cat }}
-        </span>
-        <span class="category-tab see-more" @click="showAddGameModal = true">
-          + Add Game
-        </span>
-        <span class="category-tab see-more steam-tab" @click="openSteamModal">
-          <i class="fab fa-steam"></i> Import from Steam
-        </span>
+      <!-- ========== HERO FEATURED SECTION ========== -->
+      <div class="hero-section" v-if="featuredGame">
+        <div class="hero-banner">
+          <div class="hero-overlay"></div>
+          <div class="hero-content">
+            <div class="hero-tags">
+              <span class="hero-tag-popular"><i class="fas fa-fire"></i> Popular</span>
+              <span class="hero-tag-platform"><i class="fab fa-steam"></i></span>
+              <span class="hero-tag-platform"><i class="fas fa-shield-cat"></i></span>
+            </div>
+            <h1 class="hero-title">{{ featuredGame.title }}</h1>
+            <p class="hero-desc">
+              {{ featuredGame.title }} is a competitive tactical shooter with custom alt account tracking, real-time playtime sync and match stats.
+            </p>
+            <div class="hero-actions">
+              <div class="review-avatars">
+                <span class="avatar-mini bg1"><i class="fas fa-user"></i></span>
+                <span class="avatar-mini bg2"><i class="fas fa-user-ninja"></i></span>
+                <span class="avatar-mini bg3"><i class="fas fa-mask"></i></span>
+              </div>
+              <button class="hero-btn-reviews" @click="selectGame(featuredGame)">
+                <i class="fas fa-thumbs-up"></i> {{ altPreviews[featuredGame.id]?.length || 3 }} Alts & Reviews
+              </button>
+            </div>
+          </div>
+          <div class="hero-character">
+            <i :class="['fas', getGameIcon(featuredGame.title), 'hero-bg-icon']"></i>
+          </div>
+        </div>
+
+        <!-- QUICK ACCESS STACK -->
+        <div class="hero-stack">
+          <div
+            v-for="game in games.slice(1, 4)"
+            :key="game.id"
+            class="stack-card"
+            @click="selectGame(game)"
+          >
+            <div class="stack-thumb">
+              <i :class="['fas', getGameIcon(game.title)]"></i>
+            </div>
+            <div class="stack-info">
+              <div class="stack-title">{{ game.title }}</div>
+              <div class="stack-sub">{{ game.totalPlaytime }}h played • {{ altPreviews[game.id]?.length || 1 }} alts</div>
+            </div>
+            <i class="fas fa-chevron-right stack-arrow"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========== CATEGORY TABS & ROW ========== -->
+      <div class="section-header">
+        <h2 class="section-title">Library Games</h2>
+        <div class="category-tabs">
+          <span
+            v-for="cat in ['Popular', 'New Games', 'Most Played', 'Recent']"
+            :key="cat"
+            class="category-tab"
+            :class="{ active: selectedCategory === cat }"
+            @click="selectedCategory = cat"
+          >
+            {{ cat }}
+          </span>
+          <span class="category-tab see-more" @click="showAddGameModal = true">
+            + Add Game
+          </span>
+          <span class="category-tab see-more steam-tab" @click="openSteamModal">
+            <i class="fab fa-steam"></i> Import Steam
+          </span>
+        </div>
       </div>
 
       <!-- ========== GAME GRID ========== -->
@@ -264,25 +319,18 @@ onMounted(() => {
                 <div class="game-card-top">
                   <div class="game-card-header">
                     <i :class="['fas', getGameIcon(game.title), 'game-icon']"></i>
-                    <span class="game-status">
-                      <i class="fas fa-circle" style="color:#4ade80;font-size:8px;margin-right:4px;"></i>
-                      Play
-                    </span>
+                    <button class="game-play-badge"><i class="fas fa-play"></i></button>
                   </div>
                   <h3 class="game-title">{{ game.title }}</h3>
+                  <p class="game-subtitle">{{ game.genres || 'Action, Multiplayer' }}</p>
                   <div class="game-meta">
                     <span><i class="fas fa-clock"></i> {{ game.totalPlaytime }}h</span>
-                    <span><i class="fas fa-user-friends"></i> {{ altPreviews[game.id]?.length || 0 }} alts</span>
-                  </div>
-                  <div class="game-meta" v-if="game.rating || game.metacritic">
-                    <span v-if="game.rating" class="meta-rating"><i class="fas fa-star"></i> {{ game.rating.toFixed(1) }}</span>
-                    <span v-if="game.metacritic" class="meta-meta"><i class="fas fa-crown"></i> {{ game.metacritic }}</span>
-                    <span v-if="game.released" class="meta-release"><i class="fas fa-calendar"></i> {{ game.released.slice(0, 4) }}</span>
+                    <span><i class="fas fa-users"></i> {{ altPreviews[game.id]?.length || 0 }} alts</span>
                   </div>
                 </div>
                 <div class="game-card-bottom">
                   <span class="game-edition">Open Game</span>
-                  <span class="game-reviews"><i class="fas fa-arrow-right"></i> View alts</span>
+                  <span class="game-reviews"><i class="fas fa-arrow-right"></i></span>
                 </div>
               </div>
             </div>
@@ -294,69 +342,102 @@ onMounted(() => {
               <div class="game-card-content add-game-content">
                 <i class="fas fa-plus-circle add-icon"></i>
                 <h3 class="add-title">Add New Game</h3>
-                <p class="add-sub">Click to add</p>
+                <p class="add-sub">Click to tracking</p>
               </div>
             </div>
           </div>
         </div>
+      </div>
 
-        <!-- See More Link -->
-        <div class="see-more-section">
-          <span class="see-more-link" @click="selectedCategory = 'Most Played'">
-            See More <i class="fas fa-arrow-right"></i>
-          </span>
+      <!-- ========== LAST DOWNLOADS / ACTIVE SESSION BAR ========== -->
+      <div class="downloads-section" v-if="recentGames.length > 0">
+        <div class="section-header">
+          <h2 class="section-title">Active Downloads & Session</h2>
+          <span class="see-more-link" @click="selectedCategory = 'Recent'">See More <i class="fas fa-arrow-right"></i></span>
+        </div>
+        <div class="download-card">
+          <div class="download-left">
+            <div class="download-thumb">
+              <i :class="['fas', getGameIcon(recentGames[0]?.title || 'FIFA')]"></i>
+            </div>
+            <div class="download-info">
+              <h4 class="download-title">{{ recentGames[0]?.title || 'FIFA 23' }}</h4>
+              <span class="download-tag">Alt Account Active</span>
+            </div>
+          </div>
+          <div class="download-center">
+            <span class="download-time">1 hour 23 min.</span>
+            <span class="download-size">265Mb of 1.23Gb</span>
+          </div>
+          <div class="download-actions">
+            <button class="download-btn play" title="Play"><i class="fas fa-play"></i></button>
+            <button class="download-btn cancel" title="Pause"><i class="fas fa-times"></i></button>
+          </div>
         </div>
       </div>
     </main>
 
-    <!-- ========== RIGHT PANEL ========== -->
+    <!-- ========== RIGHT STATISTICS PANEL ========== -->
     <aside class="right-panel">
       <div class="panel-section">
-        <h3 class="panel-title"><i class="fas fa-chart-simple"></i> Your Statistics</h3>
-        <div class="total-hours">
-          <span class="total-hours-value">{{ totalPlaytime }}h</span>
-          <span class="total-hours-label">Total Hours</span>
+        <div class="panel-header-row">
+          <h3 class="panel-title">Your Statistic</h3>
+          <i class="fas fa-arrow-right panel-arrow"></i>
         </div>
-        <div class="stats-grid">
-          <div class="panel-stat">
-            <span class="panel-stat-value">{{ games.length }}</span>
-            <span class="panel-stat-label">Games</span>
-          </div>
-          <div class="panel-stat">
-            <span class="panel-stat-value">{{ totalAlts }}</span>
-            <span class="panel-stat-label">Alts</span>
-          </div>
-        </div>
-      </div>
 
-      <div class="panel-section" v-if="recentGames.length > 0">
-        <h3 class="panel-title"><i class="fas fa-clock-rotate-left"></i> Last Downloads</h3>
-        <div class="panel-game-card" v-for="game in recentGames" :key="game.id">
-          <div class="panel-game-info">
-            <i :class="['fas', getGameIcon(game.title), 'panel-game-icon']"></i>
-            <div>
-              <div class="panel-game-name">{{ game.title }}</div>
-              <div class="panel-game-hours">{{ game.totalPlaytime }}h total</div>
-              <div class="panel-download-progress">
-                <div class="progress-bar" :style="{ width: Math.min((game.totalPlaytime / 100) * 100, 100) + '%' }"></div>
-                <span class="progress-text">{{ Math.min(Math.round((game.totalPlaytime / 100) * 100), 100) }}%</span>
-              </div>
+        <!-- ORGANIC WAVE GLOW ORB -->
+        <div class="orb-container">
+          <div class="wave-orb">
+            <div class="orb-content">
+              <span class="orb-label">Total hours</span>
+              <span class="orb-value">{{ totalPlaytime.toLocaleString() }}h</span>
             </div>
+          </div>
+        </div>
+
+        <!-- TOP GAME HOURS BADGES -->
+        <div class="top-games-row">
+          <div class="top-game-badge" v-for="g in games.slice(0, 3)" :key="g.id">
+            <div class="badge-icon">
+              <i :class="['fas', getGameIcon(g.title)]"></i>
+            </div>
+            <span class="badge-hours">{{ g.totalPlaytime }}h</span>
           </div>
         </div>
       </div>
 
       <div class="panel-section" v-if="mostPlayedGame">
         <h3 class="panel-title"><i class="fas fa-trophy"></i> Most Played</h3>
-        <div class="panel-game-card highlight">
+        <div class="panel-game-card highlight" @click="selectGame(mostPlayedGame)">
           <div class="panel-game-info">
             <i :class="['fas', getGameIcon(mostPlayedGame.title), 'panel-game-icon']"></i>
             <div>
               <div class="panel-game-name">{{ mostPlayedGame.title }}</div>
-              <div class="panel-game-hours">{{ mostPlayedGame.totalPlaytime }} hours</div>
+              <div class="panel-game-hours">{{ mostPlayedGame.totalPlaytime }} hours total</div>
             </div>
           </div>
         </div>
+      </div>
+    </aside>
+
+    <!-- ========== RIGHTMOST FRIENDS / SOCIAL BAR ========== -->
+    <aside class="social-bar">
+      <div class="friend-item" title="Nikitin (In Game)">
+        <div class="friend-avatar bg-a">
+          <i class="fas fa-user-ninja"></i>
+          <span class="status-dot online"></span>
+        </div>
+        <span class="friend-tag">In Game</span>
+      </div>
+      <div class="friend-item" v-for="i in 5" :key="i" :title="'Friend #' + i">
+        <div class="friend-avatar" :class="'bg-' + (i % 4)">
+          <i class="fas" :class="['fa-user-astronaut', 'fa-user-secret', 'fa-user-graduate', 'fa-user-shield'][i % 4]"></i>
+          <span class="status-dot" :class="i % 2 === 0 ? 'online' : 'away'"></span>
+        </div>
+      </div>
+      <div class="social-footer">
+        <button class="social-btn"><i class="fas fa-comment"></i></button>
+        <button class="social-btn"><i class="fas fa-user-group"></i></button>
       </div>
     </aside>
 
@@ -483,7 +564,300 @@ onMounted(() => {
 </template>
 
 <style scoped>
-/* ========== COVER ART CARDS ========== */
+/* ========== HEADER & SEARCH ========== */
+.greeting-name {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.search-bar {
+  display: flex;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 24px;
+  padding: 8px 18px;
+  border: 1px solid var(--border-color);
+  flex: 1;
+  max-width: 380px;
+  transition: border-color 0.2s;
+}
+
+.search-bar:focus-within {
+  border-color: var(--accent-coral);
+}
+
+.search-icon {
+  color: var(--text-dim);
+  font-size: 14px;
+  margin-right: 10px;
+}
+
+.search-input {
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-size: 14px;
+  outline: none;
+  width: 100%;
+}
+
+.header-action-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.header-action-btn:hover {
+  border-color: var(--accent-coral);
+  color: var(--text-primary);
+}
+
+/* ========== HERO FEATURED SECTION ========== */
+.hero-section {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 20px;
+  margin-bottom: 28px;
+}
+
+.hero-banner {
+  position: relative;
+  border-radius: 28px;
+  padding: 28px;
+  background: linear-gradient(135deg, #e5384b 0%, #a82433 40%, #401520 100%);
+  overflow: hidden;
+  min-height: 220px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: 0 12px 32px rgba(229, 56, 75, 0.25);
+}
+
+.hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 80% 50%, rgba(255, 255, 255, 0.15), transparent 70%);
+}
+
+.hero-content {
+  position: relative;
+  z-index: 2;
+  max-width: 65%;
+}
+
+.hero-tags {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.hero-tag-popular {
+  background: var(--accent-cream);
+  color: var(--accent-cream-text);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 14px;
+  border-radius: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hero-tag-platform {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.3);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+}
+
+.hero-title {
+  font-size: 32px;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0 0 8px 0;
+  letter-spacing: -0.5px;
+}
+
+.hero-desc {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.85);
+  line-height: 1.5;
+  margin: 0 0 18px 0;
+}
+
+.hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.review-avatars {
+  display: flex;
+  align-items: center;
+}
+
+.avatar-mini {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid #a82433;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: #fff;
+  margin-left: -8px;
+}
+
+.avatar-mini:first-child { margin-left: 0; }
+.avatar-mini.bg1 { background: #3b82f6; }
+.avatar-mini.bg2 { background: #10b981; }
+.avatar-mini.bg3 { background: #f59e0b; }
+
+.hero-btn-reviews {
+  background: rgba(255, 255, 255, 0.95);
+  color: #230e15;
+  border: none;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.hero-btn-reviews:hover {
+  transform: scale(1.04);
+}
+
+.hero-character {
+  position: absolute;
+  right: -10px;
+  bottom: -20px;
+  z-index: 1;
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+.hero-bg-icon {
+  font-size: 180px;
+  color: #ffffff;
+}
+
+/* ========== QUICK ACCESS STACK ========== */
+.hero-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.stack-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.stack-card:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--border-light);
+  transform: translateX(4px);
+}
+
+.stack-thumb {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: rgba(229, 56, 75, 0.2);
+  color: var(--accent-coral);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.stack-info {
+  flex: 1;
+  overflow: hidden;
+}
+
+.stack-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stack-sub {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.stack-arrow {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+/* ========== SECTION HEADERS ========== */
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.section-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+/* ========== GAME CARD OVERRIDES ========== */
+.game-play-badge {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--accent-coral);
+  border: none;
+  color: #fff;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(229, 56, 75, 0.4);
+}
+
+.game-subtitle {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin: 0 0 12px 0;
+}
+
 .game-card-glass.has-cover {
   background-size: cover;
   background-position: center;
@@ -494,8 +868,8 @@ onMounted(() => {
   content: '';
   position: absolute;
   inset: 0;
-  border-radius: 18px;
-  background: linear-gradient(180deg, rgba(5, 8, 15, 0.15) 0%, rgba(5, 8, 15, 0.55) 55%, rgba(5, 8, 15, 0.92) 100%);
+  border-radius: 28px;
+  background: linear-gradient(180deg, rgba(35, 14, 21, 0.2) 0%, rgba(35, 14, 21, 0.85) 100%);
 }
 
 .game-card-glass.has-cover .game-card-content {
@@ -503,153 +877,342 @@ onMounted(() => {
   z-index: 1;
 }
 
-.game-card-glass.has-cover .game-card-header .game-icon {
-  opacity: 0;
+/* ========== DOWNLOADS BAR ========== */
+.downloads-section {
+  margin-top: 28px;
 }
 
-.game-card-glass.has-cover .game-title {
-  font-size: 20px;
-}
-
-/* ========== META BADGES ========== */
-.meta-rating i {
-  color: #facc15;
-}
-
-.meta-meta i {
-  color: var(--gradient-start);
-}
-
-.meta-release i {
-  color: var(--text-dim);
-}
-
-/* ========== STEAM TAB ========== */
-.steam-tab {
-  color: #66c0f4;
-}
-
-.steam-tab:hover {
-  border-color: #66c0f4;
-  color: #66c0f4;
-}
-
-/* ========== STEAM MODAL ========== */
-.steam-modal {
-  width: 520px;
-}
-
-.steam-notice {
-  margin-bottom: 16px;
-  padding: 10px 14px;
-  border-radius: 8px;
-  background: rgba(108, 140, 255, 0.1);
-  border: 1px solid rgba(108, 140, 255, 0.25);
-  color: var(--text-secondary);
-  font-size: 13px;
-}
-
-.steam-hint {
-  font-size: 12px;
-  color: var(--text-dim);
-}
-
-.steam-hint a {
-  color: var(--gradient-start);
-  text-decoration: none;
-}
-
-.steam-hint a:hover {
-  text-decoration: underline;
-}
-
-.steam-results {
-  margin-top: 8px;
-}
-
-.steam-count {
-  font-size: 13px;
-  color: var(--text-muted);
-  margin-bottom: 10px;
-}
-
-.steam-count i {
-  color: #4ade80;
-}
-
-.steam-list {
-  max-height: 300px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.steam-item {
+.download-card {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 10px;
-  border-radius: 10px;
-  border: 1px solid var(--border-color);
-  background: var(--bg-glass);
-  cursor: pointer;
-  transition: border-color 0.2s, background 0.2s;
+  justify-content: space-between;
+  padding: 16px 22px;
+  background: rgba(229, 56, 75, 0.15);
+  border: 1px solid rgba(229, 56, 75, 0.3);
+  border-radius: 24px;
 }
 
-.steam-item:hover {
-  border-color: var(--border-light);
+.download-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
 }
 
-.steam-item.checked {
-  border-color: rgba(108, 140, 255, 0.4);
-  background: rgba(108, 140, 255, 0.08);
-}
-
-.steam-item input[type='checkbox'] {
-  accent-color: var(--gradient-start);
-  flex-shrink: 0;
-}
-
-.steam-thumb {
-  width: 46px;
-  height: 22px;
-  object-fit: cover;
-  border-radius: 4px;
-  flex-shrink: 0;
-}
-
-.steam-thumb-icon {
+.download-thumb {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #230e15;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg-secondary);
-  color: var(--text-dim);
-  font-size: 12px;
+  font-size: 20px;
 }
 
-.steam-item-name {
-  flex: 1;
-  font-size: 14px;
+.download-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
   color: var(--text-primary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
-.steam-item-hours {
-  font-size: 12px;
-  color: var(--text-dim);
-  white-space: nowrap;
+.download-tag {
+  font-size: 11px;
+  color: #4ade80;
+  background: rgba(74, 222, 128, 0.15);
+  padding: 2px 10px;
+  border-radius: 10px;
 }
 
-.steam-error {
-  margin-top: 12px;
-  padding: 10px 14px;
-  border-radius: 8px;
-  background: rgba(239, 68, 68, 0.12);
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  color: #fca5a5;
+.download-center {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.download-time {
   font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.download-size {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.download-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.download-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+}
+
+.download-btn.play {
+  background: #ffffff;
+  color: var(--accent-coral);
+}
+
+.download-btn.cancel {
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+}
+
+/* ========== RIGHT STATS ORB WIDGET ========== */
+.panel-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.panel-arrow {
+  color: var(--text-dim);
+  font-size: 14px;
+}
+
+.orb-container {
+  display: flex;
+  justify-content: center;
+  padding: 10px 0 20px 0;
+}
+
+.wave-orb {
+  width: 170px;
+  height: 170px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #ff6b81 0%, #e5384b 40%, #701828 75%, transparent 100%);
+  box-shadow: 0 0 45px rgba(229, 56, 75, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  animation: pulseOrb 4s infinite alternate ease-in-out;
+}
+
+@keyframes pulseOrb {
+  0% { transform: scale(0.98); box-shadow: 0 0 35px rgba(229, 56, 75, 0.3); }
+  100% { transform: scale(1.03); box-shadow: 0 0 55px rgba(255, 107, 129, 0.5); }
+}
+
+.orb-content {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: #1f0b12;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.orb-label {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.orb-value {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.top-games-row {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 14px;
+}
+
+.top-game-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.badge-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.95);
+  color: #230e15;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+}
+
+.badge-hours {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+/* ========== RIGHTMOST SOCIAL BAR ========== */
+.social-bar {
+  width: 68px;
+  background: rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(var(--glass-blur));
+  border-left: 1px solid var(--border-color);
+  padding: 20px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  flex-shrink: 0;
+}
+
+.friend-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  cursor: pointer;
+}
+
+.friend-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #391823;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 16px;
+  position: relative;
+  border: 1px solid var(--border-light);
+}
+
+.friend-avatar.bg-a { background: #e5384b; }
+.friend-avatar.bg-0 { background: #3b82f6; }
+.friend-avatar.bg-1 { background: #10b981; }
+.friend-avatar.bg-2 { background: #8b5cf6; }
+.friend-avatar.bg-3 { background: #f59e0b; }
+
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  position: absolute;
+  top: 0;
+  right: -2px;
+  border: 2px solid #230e15;
+}
+
+.status-dot.online { background: #4ade80; }
+.status-dot.away { background: #facc15; }
+
+.friend-tag {
+  font-size: 9px;
+  color: var(--accent-coral);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.social-footer {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.social-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.social-btn:hover {
+  background: var(--accent-coral);
+  color: #fff;
+  border-color: var(--accent-coral);
+}
+
+.add-box-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  border: 2px dashed rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.add-box-btn:hover {
+  border-color: var(--accent-coral);
+  color: var(--accent-coral);
+}
+
+/* ========== RESPONSIVE MEDIA QUERIES ========== */
+@media (max-width: 1200px) {
+  .social-bar {
+    display: none !important;
+  }
+}
+
+@media (max-width: 992px) {
+  .hero-section {
+    grid-template-columns: 1fr;
+  }
+  .right-panel {
+    display: none !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .app-layout {
+    flex-direction: column;
+  }
+  .sidebar {
+    width: 100%;
+    height: 60px;
+    flex-direction: row;
+    justify-content: space-between;
+    padding: 8px 16px;
+    border-right: none;
+    border-bottom: 1px solid var(--border-light);
+  }
+  .sidebar-nav {
+    flex-direction: row;
+  }
+  .sidebar-footer {
+    display: none;
+  }
+  .main-content {
+    padding: 16px;
+  }
+  .hero-banner {
+    padding: 20px;
+  }
+  .hero-title {
+    font-size: 24px;
+  }
 }
 </style>
