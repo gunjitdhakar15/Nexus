@@ -202,26 +202,26 @@ onMounted(() => initTheme())
   font-family: 'Segoe UI', -apple-system, sans-serif;
 }
 
-/* ========== LIGHT THEME ========== */
+/* ========== LIGHT THEME OVERRIDE ========== */
 .app-container.light {
-  --bg-primary: #f8e6ec;
-  --bg-secondary: #ffffff;
-  --bg-app: #ffffff;
-  --bg-card: rgba(229, 56, 75, 0.05);
-  --bg-card-hover: rgba(229, 56, 75, 0.1);
-  --bg-glass: rgba(255, 255, 255, 0.85);
-  --bg-menu: rgba(255, 255, 255, 0.95);
-  --bg-modal: rgba(255, 255, 255, 0.96);
-  --bg-sidebar: rgba(229, 56, 75, 0.03);
-  --bg-panel: rgba(229, 56, 75, 0.03);
+  --bg-primary: #280f18;
+  --bg-secondary: #381523;
+  --bg-app: #2f111d;
+  --bg-card: rgba(255, 255, 255, 0.08);
+  --bg-card-hover: rgba(255, 255, 255, 0.14);
+  --bg-glass: rgba(255, 255, 255, 0.08);
+  --bg-menu: rgba(48, 18, 28, 0.96);
+  --bg-modal: rgba(52, 19, 30, 0.96);
+  --bg-sidebar: rgba(0, 0, 0, 0.3);
+  --bg-panel: rgba(0, 0, 0, 0.25);
 
-  --text-primary: #2d121b;
-  --text-secondary: #5a2835;
-  --text-muted: #8c4c5b;
-  --text-dim: rgba(90, 40, 53, 0.4);
+  --text-primary: #ffffff;
+  --text-secondary: #f0d5dd;
+  --text-muted: #c495a3;
+  --text-dim: rgba(240, 213, 221, 0.4);
 
-  --border-color: rgba(229, 56, 75, 0.1);
-  --border-light: rgba(229, 56, 75, 0.15);
+  --border-color: rgba(255, 255, 255, 0.12);
+  --border-light: rgba(255, 255, 255, 0.18);
 }
 
 /* ========== BACKGROUND ========== */
@@ -232,11 +232,11 @@ onMounted(() => initTheme())
   right: 0;
   bottom: 0;
   z-index: 0;
-  background: radial-gradient(circle at 50% 30%, #3d1723 0%, #230e15 100%);
+  background: radial-gradient(circle at 50% 30%, #3d1723 0%, #1e0911 100%);
 }
 
 .app-container.light .app-background {
-  background: radial-gradient(circle at 50% 30%, #fbe8ee 0%, #f2d2dc 100%);
+  background: radial-gradient(circle at 50% 30%, #421826 0%, #210912 100%);
 }
 
 .app-background-glow {

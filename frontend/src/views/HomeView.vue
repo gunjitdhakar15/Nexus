@@ -1188,7 +1188,7 @@ onMounted(() => {
   color: var(--accent-coral);
 }
 
-/* ========== RESPONSIVE MEDIA QUERIES ========== */
+/* ========== COMPREHENSIVE MOBILE RESPONSIVE RULES ========== */
 @media (max-width: 1200px) {
   .social-bar {
     display: none !important;
@@ -1206,31 +1206,171 @@ onMounted(() => {
 
 @media (max-width: 768px) {
   .app-layout {
-    flex-direction: column;
+    flex-direction: column !important;
   }
+
   .sidebar {
-    width: 100%;
-    height: 60px;
-    flex-direction: row;
-    justify-content: space-between;
-    padding: 8px 16px;
-    border-right: none;
-    border-bottom: 1px solid var(--border-light);
+    width: 100% !important;
+    height: auto !important;
+    padding: 10px 14px !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    border-right: none !important;
+    border-bottom: 1px solid var(--border-light) !important;
+    background: rgba(0, 0, 0, 0.4) !important;
   }
+
+  .sidebar-brand {
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+    border-bottom: none !important;
+    width: auto !important;
+  }
+
   .sidebar-nav {
-    flex-direction: row;
+    flex-direction: row !important;
+    gap: 8px !important;
+    flex: initial !important;
+    width: auto !important;
   }
+
   .sidebar-footer {
-    display: none;
+    display: none !important;
   }
+
   .main-content {
-    padding: 16px;
+    padding: 14px !important;
+    max-height: none !important;
+    overflow-y: visible !important;
   }
+
+  .demo-banner {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 6px !important;
+    padding: 10px 14px !important;
+    font-size: 11px !important;
+  }
+
+  .demo-banner a {
+    margin-left: 0 !important;
+  }
+
+  .main-header {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+    margin-bottom: 18px !important;
+  }
+
+  .greeting-name {
+    font-size: 20px !important;
+  }
+
+  .search-bar {
+    max-width: 100% !important;
+    width: 100% !important;
+    padding: 8px 14px !important;
+  }
+
+  .header-right {
+    justify-content: flex-end !important;
+  }
+
+  .hero-section {
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+    margin-bottom: 20px !important;
+  }
+
   .hero-banner {
-    padding: 20px;
+    padding: 20px !important;
+    min-height: auto !important;
+    border-radius: 22px !important;
   }
+
+  .hero-content {
+    max-width: 100% !important;
+  }
+
   .hero-title {
-    font-size: 24px;
+    font-size: 24px !important;
+  }
+
+  .hero-desc {
+    font-size: 12px !important;
+    margin-bottom: 14px !important;
+  }
+
+  .hero-character {
+    display: none !important;
+  }
+
+  .hero-actions {
+    flex-wrap: wrap !important;
+    gap: 10px !important;
+  }
+
+  .category-tabs {
+    gap: 6px !important;
+    overflow-x: auto !important;
+    padding-bottom: 6px !important;
+    white-space: nowrap !important;
+    flex-wrap: nowrap !important;
+  }
+
+  .category-tab {
+    padding: 6px 14px !important;
+    font-size: 12px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .game-grid {
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+  }
+
+  .game-card {
+    min-height: auto !important;
+    border-radius: 22px !important;
+  }
+
+  .game-card-glass {
+    padding: 16px !important;
+    min-height: 220px !important;
+    border-radius: 22px !important;
+  }
+
+  .download-card {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+    padding: 14px 16px !important;
+  }
+
+  .download-center {
+    flex-direction: row !important;
+    justify-content: space-between !important;
+  }
+
+  .download-actions {
+    justify-content: flex-end !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .hero-title {
+    font-size: 20px !important;
+  }
+
+  .nav-item {
+    width: 36px !important;
+    height: 36px !important;
+  }
+
+  .nav-icon {
+    font-size: 16px !important;
   }
 }
 </style>

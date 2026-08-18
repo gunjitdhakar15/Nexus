@@ -10,9 +10,8 @@ const toastMessage = ref<string | null>(null)
 
 export function useUI() {
   const initTheme = () => {
-    const saved = localStorage.getItem('theme')
-    isDarkMode.value = saved !== 'light'
-    document.documentElement.style.colorScheme = isDarkMode.value ? 'dark' : 'light'
+    isDarkMode.value = true
+    document.documentElement.style.colorScheme = 'dark'
   }
 
   const toggleTheme = () => {
