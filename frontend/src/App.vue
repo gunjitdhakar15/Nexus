@@ -1582,5 +1582,193 @@ onMounted(() => initTheme())
   .orb-value {
     font-size: 14px;
   }
+.orb-value {
+    font-size: 14px;
+  }
+}
+
+/* ===== ULTRA-AGGRESSIVE MOBILE OVERRIDE (loads last, wins specificity) ===== */
+@media (max-width: 768px) {
+  .app-container .app-layout {
+    flex-direction: column !important;
+  }
+  .app-container .sidebar {
+    width: 100% !important;
+    height: 60px !important;
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    padding: 8px 16px !important;
+    border-right: none !important;
+    border-bottom: 1px solid var(--border-light) !important;
+    order: -1 !important;
+  }
+  .app-container .sidebar-brand {
+    padding: 0 !important;
+    border: none !important;
+    margin: 0 !important;
+  }
+  .app-container .sidebar-nav {
+    flex-direction: row !important;
+    gap: 8px !important;
+    flex: 1 !important;
+    justify-content: flex-start !important;
+  }
+  .app-container .sidebar-footer {
+    display: none !important;
+  }
+  .app-container .main-content {
+    padding: 16px !important;
+    max-height: none !important;
+    overflow-y: visible !important;
+  }
+  .app-container .right-panel {
+    display: none !important;
+  }
+  .app-container .social-bar {
+    display: none !important;
+  }
+  .app-container .main-header {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+  }
+  .app-container .header-left {
+    flex-direction: column !important;
+    gap: 12px !important;
+    align-items: stretch !important;
+  }
+  .app-container .search-bar {
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+  .app-container .header-right {
+    justify-content: flex-end !important;
+  }
+  .app-container .game-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .app-container .hero-section {
+    display: block !important;
+    grid-template-columns: 1fr !important;
+  }
+  .app-container .hero-banner {
+    min-height: auto !important;
+    padding: 20px !important;
+  }
+  .app-container .hero-character {
+    display: none !important;
+  }
+  .app-container .download-card {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+  .app-container .wave-orb {
+    width: 140px !important;
+    height: 140px !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .app-container .sidebar {
+    height: auto !important;
+    padding: 10px 12px !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+  .app-container .sidebar-nav {
+    order: 3 !important;
+    width: 100% !important;
+    justify-content: center !important;
+    padding-top: 8px !important;
+    border-top: 1px solid var(--border-color) !important;
+  }
+  .app-container .main-header {
+    gap: 10px !important;
+  }
+  .app-container .greeting-name {
+    font-size: 18px !important;
+  }
+  .app-container .hero-banner {
+    padding: 16px !important;
+  }
+  .app-container .hero-title {
+    font-size: 22px !important;
+  }
+  .app-container .hero-desc {
+    font-size: 12px !important;
+  }
+  .app-container .hero-btn-reviews {
+    padding: 8px 14px !important;
+    font-size: 11px !important;
+  }
+  .app-container .stack-card {
+    padding: 10px 12px !important;
+  }
+  .app-container .stack-thumb {
+    width: 34px !important;
+    height: 34px !important;
+    font-size: 16px !important;
+  }
+  .app-container .section-title {
+    font-size: 18px !important;
+  }
+  .app-container .category-tab {
+    padding: 6px 12px !important;
+    font-size: 12px !important;
+  }
+  .app-container .game-grid {
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+  }
+  .app-container .game-card-glass {
+    padding: 16px !important;
+    min-height: 240px !important;
+    border-radius: 22px !important;
+  }
+  .app-container .game-title {
+    font-size: 17px !important;
+  }
+  .app-container .game-subtitle {
+    font-size: 11px !important;
+  }
+  .app-container .download-card {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 14px !important;
+    padding: 14px 16px !important;
+  }
+  .app-container .download-left {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 10px !important;
+  }
+  .app-container .download-center {
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    width: 100% !important;
+  }
+  .app-container .download-actions {
+    justify-content: flex-end !important;
+  }
+  .app-container .wave-orb {
+    width: 120px !important;
+    height: 120px !important;
+  }
+  .app-container .orb-content {
+    width: 100px !important;
+    height: 100px !important;
+  }
+  .app-container .orb-value {
+    font-size: 16px !important;
+  }
+  .app-container .top-game-badge {
+    gap: 4px !important;
+  }
+  .app-container .badge-icon {
+    width: 38px !important;
+    height: 38px !important;
+    font-size: 16px !important;
+  }
 }
 </style>
