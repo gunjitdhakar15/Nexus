@@ -33,6 +33,7 @@ type SteamGame struct {
 	HeaderURL     string `json:"headerUrl"`
 }
 
+// Alt Accounts Models for a particular Game
 type AltAccount struct {
 	ID            string                 `json:"id"`
 	GameID        string                 `json:"gameId"`
